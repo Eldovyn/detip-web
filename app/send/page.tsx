@@ -11,7 +11,7 @@ const SendPage = () => {
     return (
         <>
             <NavBar />
-            <section className="flex flex-col h-screen bg-[#F9F8F5] pt-10 gap-5">
+            <section className="flex flex-col h-screen bg-white pt-10 gap-5">
                 <form action="" className="w-[30%] mx-auto">
                     <p className="text-xl font-semibold">Kirim DTC</p>
                     <input type="email" placeholder="Nama Pengguna, Wallet Address" className="my-2 w-full px-3 py-2 border rounded-md bg-white" />
