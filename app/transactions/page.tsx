@@ -30,7 +30,6 @@ const mockTxs = [
 const statusBadgeClass = (status: string) => {
     switch (status) {
         case "Success":
-            // hijau utama
             return "bg-emerald-50 text-emerald-700 ring-emerald-500/30";
         case "Pending":
             return "bg-amber-50 text-amber-700 ring-amber-500/30";
@@ -45,7 +44,8 @@ const TransactionsPage = () => {
     return (
         <>
             <NavBar />
-            <section className="min-h-screen bg-slate-50 pt-10">
+
+            <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
                 <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-10">
                     {/* Header */}
                     <div className="flex flex-col justify-between gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end">
@@ -57,20 +57,26 @@ const TransactionsPage = () => {
                                 Latest transactions on this network
                             </p>
                         </div>
-                        <div className="flex gap-3">
-                            <input
-                                placeholder="Search hash / address…"
-                                className="w-56 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
-                            />
-                            <select className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
-                                <option>All statuses</option>
-                                <option>Success</option>
-                                <option>Pending</option>
-                                <option>Failed</option>
-                            </select>
+                        <div className="flex flex-col gap-1 sm:items-end">
+                            <div className="flex gap-3">
+                                <input
+                                    placeholder="Search hash / address…"
+                                    className="w-56 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                                />
+                                <select className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
+                                    <option>All statuses</option>
+                                    <option>Success</option>
+                                    <option>Pending</option>
+                                    <option>Failed</option>
+                                </select>
+                            </div>
+                            <span className="text-xs text-slate-400">
+                                Showing {mockTxs.length} recent transactions
+                            </span>
                         </div>
                     </div>
 
+                    {/* Desktop table */}
                     <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
                         <table className="min-w-full divide-y divide-slate-200">
                             <thead className="bg-slate-50">
@@ -85,7 +91,10 @@ const TransactionsPage = () => {
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {mockTxs.map((tx) => (
-                                    <tr key={tx.hash} className="hover:bg-emerald-50/30">
+                                    <tr
+                                        key={tx.hash}
+                                        className="hover:bg-emerald-50/40 transition-colors"
+                                    >
                                         <td className="px-4 py-3">
                                             <div className="flex items-center gap-2">
                                                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50">
@@ -134,7 +143,7 @@ const TransactionsPage = () => {
                         </table>
                     </div>
 
-                    {/* Card list mobile */}
+                    {/* Mobile cards */}
                     <div className="space-y-3 md:hidden">
                         {mockTxs.map((tx) => (
                             <Link

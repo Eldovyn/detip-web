@@ -1,5 +1,8 @@
-import NavBar from "@/components/NavBar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+"use client";
+
+import NavBar from "@/components/NavBar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useSearchParams } from "next/navigation";
 
 const users = [
     { id: 1, name: "User 1", avatar: "https://github.com/shadcn.png" },
@@ -8,37 +11,107 @@ const users = [
 ];
 
 const SendPage = () => {
+    const searchParams = useSearchParams();
+    const addressFromQuery = searchParams.get("address") ?? "";
+    const hasAddress = addressFromQuery.trim().length > 0;
+
     return (
         <>
             <NavBar />
-            <section className="flex flex-col h-screen bg-white pt-10 gap-5">
-                <form action="" className="w-[30%] mx-auto">
-                    <p className="text-xl font-semibold">Kirim DTC</p>
-                    <input type="email" placeholder="Nama Pengguna, Wallet Address" className="my-2 w-full px-3 py-2 border rounded-md bg-white" />
-                </form>
-                <div className="flex w-[30%] mx-auto gap-5">
-                    {users.map((user) => (
-                        <div
-                            key={user.id}
-                            className="flex flex-col items-center gap-2"
-                        >
-                            <Avatar className="w-10 h-10">
-                                <AvatarImage
-                                    src={user.avatar}
-                                    className="w-full h-full object-cover"
+            <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
+                <div className="mx-auto w-full max-w-3xl px-4 pb-12 space-y-6">
+                    <header className="space-y-1">
+                        <h1 className="text-xl font-semibold text-slate-900">
+                            Send DTC
+                        </h1>
+                        <p className="text-sm text-slate-500">
+                            Choose a recipient and enter the amount you want to send.
+                        </p>
+                    </header>
+
+                    <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5">
+                        <form className="space-y-4">
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="recipient"
+                                    className="text-sm font-medium text-slate-800"
+                                >
+                                    Recipient
+                                </label>
+                                <input
+                                    type="text"
+                                    id="recipient"
+                                    defaultValue={addressFromQuery}
+                                    placeholder="Username or wallet address"
+                                    className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                                 />
-                                <AvatarFallback>CN</AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm flex flex-col items-center">
-                                <span>User</span>
-                                <span>{user.id}</span>
-                            </span>
-                        </div>
-                    ))}
+                            </div>
+
+                            <div className="space-y-2">
+                                <label
+                                    htmlFor="amount"
+                                    className="text-sm font-medium text-slate-800"
+                                >
+                                    Amount
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="number"
+                                        id="amount"
+                                        min={0}
+                                        step="0.01"
+                                        placeholder="0.00"
+                                        className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                                    />
+                                    <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600">
+                                        DTC
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
+                            >
+                                Send DTC
+                            </button>
+                        </form>
+
+                        {/* Quick recipients: hanya tampil kalau TIDAK ada address di query */}
+                        {!hasAddress && (
+                            <div className="space-y-3 pt-2">
+                                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                                    Recent recipients
+                                </p>
+                                <div className="flex gap-4">
+                                    {users.map((user) => (
+                                        <button
+                                            key={user.id}
+                                            type="button"
+                                            className="flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 hover:border-emerald-400 hover:bg-emerald-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/60"
+                                        >
+                                            <Avatar className="w-10 h-10">
+                                                <AvatarImage
+                                                    src={user.avatar}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <AvatarFallback>
+                                                    {user.name[0]?.toUpperCase()}
+                                                </AvatarFallback>
+                                            </Avatar>
+                                            <span className="text-[11px] text-slate-700">
+                                                {user.name}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </section>
         </>
-    )
-}
+    );
+};
 
-export default SendPage
+export default SendPage;

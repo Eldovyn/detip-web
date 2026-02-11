@@ -1,6 +1,6 @@
 const NavBar = () => {
     return (
-        <div className="navbar bg-white border-b border-slate-100">
+        <div className="navbar bg-emerald-50/60 border-b border-emerald-100">
             <div className="navbar-start">
                 <div className="dropdown">
                     <div
@@ -27,43 +27,35 @@ const NavBar = () => {
                         tabIndex={-1}
                         className="menu menu-sm dropdown-content bg-white rounded-box z-10 mt-3 w-52 p-2 shadow"
                     >
-                        <li><a>Beranda</a></li>
+                        <li><a>Home</a></li>
                         <li>
-                            <a>Kirim</a>
+                            <a>Send</a>
                             <ul className="p-2 bg-white">
                                 <li><a>Submenu 1</a></li>
                                 <li><a>Submenu 2</a></li>
                             </ul>
                         </li>
-                        <li><a>Aktivitas</a></li>
+                        <li><a>Activity</a></li>
                         <li><a>Settings</a></li>
                     </ul>
                 </div>
 
                 <a className="flex items-center gap-2 font-semibold text-lg">
                     <span className="text-slate-900">de</span>
-                    <span className="text-emerald-500">tip</span>
+                    <span className="text-emerald-600">tip</span>
                 </a>
             </div>
 
             <div className="navbar-center hidden lg:flex">
-                <ul className="menu menu-horizontal px-1 text-sm font-medium">
+                <ul className="menu menu-horizontal px-1 text-sm font-medium [&_a]:active:bg-transparent">
                     <li>
-                        <a className="hover:text-emerald-600">Beranda</a>
+                        <a className="hover:text-emerald-600">Home</a>
                     </li>
                     <li>
-                        <details>
-                            <summary className="hover:text-emerald-600">
-                                Kirim
-                            </summary>
-                            <ul className="p-2 bg-white w-40 z-10 border border-slate-100">
-                                <li><a>Submenu 1</a></li>
-                                <li><a>Submenu 2</a></li>
-                            </ul>
-                        </details>
+                        <a className="hover:text-emerald-600">Send</a>
                     </li>
                     <li>
-                        <a className="hover:text-emerald-600">Aktivitas</a>
+                        <a className="hover:text-emerald-600">Activity</a>
                     </li>
                     <li>
                         <a className="hover:text-emerald-600">Settings</a>
@@ -73,7 +65,7 @@ const NavBar = () => {
 
             <div className="navbar-end">
                 <button
-                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
+                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-emerald-50"
                 >
                     Connect wallet
                 </button>
