@@ -60,6 +60,9 @@ const NavBar = () => {
                     <li>
                         <a className="hover:text-emerald-600">Settings</a>
                     </li>
+                    <li>
+                        <a className="hover:text-emerald-600">Swap</a>
+                    </li>
                 </ul>
             </div>
 
