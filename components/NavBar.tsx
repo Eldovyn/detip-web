@@ -1,13 +1,21 @@
+'use client';
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
 const NavBar = () => {
+    const pathname = usePathname();
+
+    const isActive = (href: string) => {
+        if (href === "/") return pathname === "/";
+        return pathname === href || pathname.startsWith(`${href}/`);
+    };
+
     return (
         <div className="navbar bg-emerald-50/60 border-b border-emerald-100">
             <div className="navbar-start">
                 <div className="dropdown">
-                    <div
-                        tabIndex={0}
-                        role="button"
-                        className="btn btn-ghost lg:hidden"
-                    >
+                    <div tabIndex={0} role="button" className="btn btn-ghost lg:hidden">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             className="h-5 w-5"
@@ -18,25 +26,52 @@ const NavBar = () => {
                             <path
                                 strokeLinecap="round"
                                 strokeLinejoin="round"
-                                strokeWidth="2"
+                                strokeWidth={2}
                                 d="M4 6h16M4 12h8m-8 6h16"
                             />
                         </svg>
                     </div>
+
                     <ul
                         tabIndex={-1}
                         className="menu menu-sm dropdown-content bg-white rounded-box z-10 mt-3 w-52 p-2 shadow"
                     >
-                        <li><a>Home</a></li>
                         <li>
-                            <a>Send</a>
-                            <ul className="p-2 bg-white">
-                                <li><a>Submenu 1</a></li>
-                                <li><a>Submenu 2</a></li>
-                            </ul>
+                            <Link
+                                href="/"
+                                aria-current={isActive("/") ? "page" : undefined}
+                                className="aria-[current=page]:text-emerald-600"
+                            >
+                                Home
+                            </Link>
                         </li>
-                        <li><a>Activity</a></li>
-                        <li><a>Settings</a></li>
+                        <li>
+                            <Link
+                                href="/send"
+                                aria-current={isActive("/send") ? "page" : undefined}
+                                className="aria-[current=page]:text-emerald-600"
+                            >
+                                Send
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/activity"
+                                aria-current={isActive("/activity") ? "page" : undefined}
+                                className="aria-[current=page]:text-emerald-600"
+                            >
+                                Activity
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/settings"
+                                aria-current={isActive("/settings") ? "page" : undefined}
+                                className="aria-[current=page]:text-emerald-600"
+                            >
+                                Settings
+                            </Link>
+                        </li>
                     </ul>
                 </div>
 
@@ -49,27 +84,55 @@ const NavBar = () => {
             <div className="navbar-center hidden lg:flex">
                 <ul className="menu menu-horizontal px-1 text-sm font-medium [&_a]:active:bg-transparent">
                     <li>
-                        <a className="hover:text-emerald-600">Home</a>
+                        <Link
+                            href="/"
+                            aria-current={isActive("/") ? "page" : undefined}
+                            className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                        >
+                            Home
+                        </Link>
                     </li>
                     <li>
-                        <a className="hover:text-emerald-600">Send</a>
+                        <Link
+                            href="/send"
+                            aria-current={isActive("/send") ? "page" : undefined}
+                            className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                        >
+                            Send
+                        </Link>
                     </li>
                     <li>
-                        <a className="hover:text-emerald-600">Activity</a>
+                        <Link
+                            href="/transactions"
+                            aria-current={isActive("/transactions") ? "page" : undefined}
+                            className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                        >
+                            Activity
+                        </Link>
                     </li>
                     <li>
-                        <a className="hover:text-emerald-600">Settings</a>
+                        <Link
+                            href="/profile"
+                            aria-current={isActive("/profile") ? "page" : undefined}
+                            className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                        >
+                            Settings
+                        </Link>
                     </li>
                     <li>
-                        <a className="hover:text-emerald-600">Swap</a>
+                        <Link
+                            href="/swap"
+                            aria-current={isActive("/swap") ? "page" : undefined}
+                            className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                        >
+                            Swap
+                        </Link>
                     </li>
                 </ul>
             </div>
 
             <div className="navbar-end">
-                <button
-                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-emerald-50"
-                >
+                <button className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-emerald-50">
                     Connect wallet
                 </button>
             </div>
