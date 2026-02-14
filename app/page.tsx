@@ -50,7 +50,6 @@ const TOPUP_RATE_IDR_PER_DTC = 1500;
 
 type TopupStep = "form" | "payment";
 
-// === shadcn color overrides (biar nyatu sama theme kamu)
 const DIALOG_CONTENT =
     "border border-emerald-100 bg-white text-slate-900 shadow-lg";
 
@@ -150,7 +149,6 @@ export default function Page() {
                         </div>
 
                         <div className="mt-5 flex items-center justify-end gap-2">
-                            {/* Topup flow in 1 dialog */}
                             <Dialog
                                 open={topupOpen}
                                 onOpenChange={(open) => {
