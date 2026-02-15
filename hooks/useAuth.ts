@@ -63,7 +63,7 @@ export function useAuth() {
                 const siweMessage = new SiweMessage({
                     domain: window.location.host,
                     address: currentAddress,
-                    statement: "Sign in to Flask App",
+                    statement: "Sign in to DeTip",
                     uri: window.location.origin,
                     version: "1",
                     chainId: ganacheChain.id,
