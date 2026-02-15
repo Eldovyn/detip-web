@@ -3,8 +3,8 @@ import { useConnectModal, AutoConnect } from "thirdweb/react";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { client } from "@/lib/client";
 import { formatCompactNumber } from "@/utils/format";
-import { useAuth } from "@/composables/useAuth";
-import { useTokenBalance } from "@/composables/useTokenBalance";
+import { useAuth } from "@/hooks/useAuth";
+import { useTokenBalance } from "@/hooks/useTokenBalance";
 
 const wallets = [
     createWallet("io.metamask"),
