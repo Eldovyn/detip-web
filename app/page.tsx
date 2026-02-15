@@ -5,7 +5,7 @@ import { useTopup } from "@/hooks/useTopup";
 import { BalanceCard } from "@/components/BalanceCard";
 import { TopupDialog } from "@/components/TopupDialog";
 import { TransactionList } from "@/components/TransactionList";
-import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useDTCBalance } from "@/hooks/useDTCBalance";
 import { useAuth } from "@/hooks/useAuth";
 
 const MOCK_TRANSACTIONS = Array.from({ length: 3 }, () => ({
@@ -22,7 +22,7 @@ export default function Page() {
 
 
     const { account } = useAuth();
-    const { balance, symbol } = useTokenBalance(account?.address);
+    const { balance, symbol } = useDTCBalance(account?.address);
 
     return (
         <>

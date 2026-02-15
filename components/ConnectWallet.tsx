@@ -4,7 +4,7 @@ import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { client } from "@/lib/client";
 import { formatCompactNumber } from "@/utils/format";
 import { useAuth } from "@/hooks/useAuth";
-import { useTokenBalance } from "@/hooks/useTokenBalance";
+import { useDTCBalance } from "@/hooks/useDTCBalance";
 
 const wallets = [
     createWallet("io.metamask"),
@@ -20,7 +20,7 @@ const wallets = [
 export function ConnectWallet() {
     const { connect } = useConnectModal();
     const { account, logout } = useAuth();
-    const { balance, symbol } = useTokenBalance(account?.address);
+    const { balance, symbol } = useDTCBalance(account?.address);
 
     return (
         <>
