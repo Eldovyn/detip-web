@@ -1,7 +1,34 @@
 "use client";
 import { useEffect } from "react";
-import { useActiveAccount, useConnectModal, useActiveWallet, useDisconnect } from "thirdweb/react";
+import {
+    useActiveAccount,
+    useConnectModal,
+    useActiveWallet,
+    useDisconnect,
+    useWalletBalance,
+    AutoConnect
+} from "thirdweb/react";
+import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { client } from "@/lib/client";
+import { ganacheChain } from "@/lib/chains";
+import { formatCompactNumber } from "@/utils/format";
+
+const wallets = [
+    createWallet("io.metamask"),
+    createWallet("com.coinbase.wallet"),
+    createWallet("me.rainbow"),
+    inAppWallet({
+        auth: {
+            options: [
+                "google",
+                "apple",
+                "facebook",
+                "email",
+                "phone",
+            ],
+        },
+    }),
+];
 
 export function ConnectWallet() {
     const account = useActiveAccount();
@@ -9,6 +36,12 @@ export function ConnectWallet() {
     const { connect } = useConnectModal();
     const { disconnect } = useDisconnect();
 
+    const { data } = useWalletBalance({
+        client,
+        chain: ganacheChain,
+        address: account?.address,
+        tokenAddress: "0x8E182D338Ed16d3d80d96103D54a6477DFC98C75",
+    });
 
     useEffect(() => {
         if (account?.address) {
@@ -18,48 +51,51 @@ export function ConnectWallet() {
         }
     }, [account]);
 
-
-    if (!account) {
-        return (
-            <button
-                onClick={() => connect({ client })}
-                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white transition-colors cursor-pointer"
-            >
-                Connect Wallet
-            </button>
-        );
-    }
-
     return (
-        <div className="inline-flex items-stretch divide-x divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-linear-to-br from-emerald-50 via-white to-emerald-50">
-                <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-linear-to-br from-emerald-500 to-emerald-600 shadow-sm">
-                    <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
-                    </svg>
-                </div>
-                <div className="flex flex-col">
-                    <span className="text-xs text-slate-500 font-medium">Balance</span>
-                    <span className="text-sm font-bold text-slate-900">1.2500 ETH</span>
-                </div>
-            </div>
-            <div className="flex items-center gap-3 px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                    <div className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </div>
-                    <code className="text-sm font-mono font-medium text-slate-700">
-                        {account.address.slice(0, 6)}...{account.address.slice(-4)}
-                    </code>
-                </div>
+        <>
+            <AutoConnect client={client} wallets={wallets} />
+
+            {!account ? (
                 <button
-                    onClick={() => wallet && disconnect(wallet)}
-                    className="text-xs font-semibold text-red-500 cursor-pointer"
+                    onClick={() => connect({ client, wallets })}
+                    className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white transition-colors cursor-pointer"
                 >
-                    ✕
+                    Connect Wallet
                 </button>
-            </div>
-        </div>
+            ) : (
+                <div className="inline-flex items-stretch divide-x divide-slate-200 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div className="flex items-center gap-3 px-4 py-2.5 bg-linear-to-br from-emerald-50 via-white to-emerald-50">
+                        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-linear-to-br from-emerald-500 to-emerald-600 shadow-sm">
+                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+                            </svg>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-xs text-slate-500 font-medium">Balance</span>
+                            <span className="text-sm font-bold text-slate-900">
+                                {data ? formatCompactNumber(data.displayValue) : "0"} {data?.symbol}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3 px-4 py-2.5">
+                        <div className="flex items-center gap-2">
+                            <div className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                            </div>
+                            <code className="text-sm font-mono font-medium text-slate-700">
+                                {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                            </code>
+                        </div>
+                        <button
+                            onClick={() => wallet && disconnect(wallet)}
+                            className="text-xs font-semibold text-red-500 cursor-pointer"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 }
