@@ -1,17 +1,10 @@
 "use client";
-import { useEffect } from "react";
-import {
-    useActiveAccount,
-    useConnectModal,
-    useActiveWallet,
-    useDisconnect,
-    useWalletBalance,
-    AutoConnect
-} from "thirdweb/react";
+import { useConnectModal, AutoConnect } from "thirdweb/react";
 import { createWallet, inAppWallet } from "thirdweb/wallets";
 import { client } from "@/lib/client";
-import { ganacheChain } from "@/lib/chains";
 import { formatCompactNumber } from "@/utils/format";
+import { useAuth } from "@/composables/useAuth";
+import { useTokenBalance } from "@/composables/useTokenBalance";
 
 const wallets = [
     createWallet("io.metamask"),
@@ -19,37 +12,15 @@ const wallets = [
     createWallet("me.rainbow"),
     inAppWallet({
         auth: {
-            options: [
-                "google",
-                "apple",
-                "facebook",
-                "email",
-                "phone",
-            ],
+            options: ["google", "apple", "facebook", "email", "phone"],
         },
     }),
 ];
 
 export function ConnectWallet() {
-    const account = useActiveAccount();
-    const wallet = useActiveWallet();
     const { connect } = useConnectModal();
-    const { disconnect } = useDisconnect();
-
-    const { data } = useWalletBalance({
-        client,
-        chain: ganacheChain,
-        address: account?.address,
-        tokenAddress: "0x8E182D338Ed16d3d80d96103D54a6477DFC98C75",
-    });
-
-    useEffect(() => {
-        if (account?.address) {
-            localStorage.setItem("account", account.address);
-        } else {
-            localStorage.removeItem("account");
-        }
-    }, [account]);
+    const { account, logout } = useAuth();
+    const { balance, symbol } = useTokenBalance(account?.address);
 
     return (
         <>
@@ -73,7 +44,7 @@ export function ConnectWallet() {
                         <div className="flex flex-col">
                             <span className="text-xs text-slate-500 font-medium">Balance</span>
                             <span className="text-sm font-bold text-slate-900">
-                                {data ? formatCompactNumber(data.displayValue) : "0"} {data?.symbol}
+                                {formatCompactNumber(balance)} {symbol}
                             </span>
                         </div>
                     </div>
@@ -88,7 +59,7 @@ export function ConnectWallet() {
                             </code>
                         </div>
                         <button
-                            onClick={() => wallet && disconnect(wallet)}
+                            onClick={logout}
                             className="text-xs font-semibold text-red-500 cursor-pointer"
                         >
                             ✕
