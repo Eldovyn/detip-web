@@ -1,9 +1,11 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react";
 import { SiweMessage } from 'siwe';
 import Cookies from 'js-cookie';
-import type { Account } from "thirdweb/wallets";
 import { ganacheChain } from "@/lib/chains";
+
+let globalLoginLock = false;
+let lastLoginAddress = "";
 
 export function useAuth() {
     const account = useActiveAccount();
@@ -12,101 +14,113 @@ export function useAuth() {
 
     const [isBackendLoggedIn, setIsBackendLoggedIn] = useState(false);
     const [isSigningIn, setIsSigningIn] = useState(false);
-    const loginAttemptedRef = useRef(false);
-
-    const fetchNonce = async () => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/nonce`);
-        return response.text();
-    };
-
-    const createSiweMessage = (address: string, nonce: string) => {
-        return new SiweMessage({
-            domain: window.location.host,
-            address,
-            statement: "Sign in to Flask App",
-            uri: window.location.origin,
-            version: "1",
-            chainId: ganacheChain.id,
-            nonce,
-            issuedAt: new Date().toISOString(),
-        });
-    };
-
-    const verifyLogin = async (message: string, signature: string) => {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sign-in`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message, signature }),
-        });
-        return response.json();
-    };
-
-    const doSIWELogin = useCallback(async (activeAccount: Account) => {
-        setIsSigningIn(true);
-
-        const resetLoginState = () => {
-            loginAttemptedRef.current = false;
-            if (wallet) disconnect(wallet);
-        };
-
-        try {
-            const nonce = await fetchNonce();
-            const siweMessage = createSiweMessage(activeAccount.address, nonce);
-            const message = siweMessage.prepareMessage();
-            const signature = await activeAccount.signMessage({ message });
-
-            const result: LoginResponse = await verifyLogin(message, signature);
-
-            if (result.token) {
-                Cookies.set('accessToken', result.token, {
-                    expires: 1,
-                    sameSite: 'strict'
-                });
-                setIsBackendLoggedIn(true);
-            } else {
-                console.error("Login Failed:", result.message);
-                resetLoginState();
-            }
-        } catch (error) {
-            console.error("SIWE Error:", error);
-            resetLoginState();
-        } finally {
-            setIsSigningIn(false);
-        }
-    }, [wallet, disconnect]);
+    const mountedRef = useRef(true);
 
     useEffect(() => {
-        if (!account) {
-            loginAttemptedRef.current = false;
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!account?.address) {
+            lastLoginAddress = "";
+            globalLoginLock = false;
             setIsBackendLoggedIn(false);
+            return;
         }
-    }, [account?.address, account]);
 
-    useEffect(() => {
-        const checkLogin = async () => {
-            if (!account || isSigningIn || isBackendLoggedIn || loginAttemptedRef.current) {
-                return;
+        const currentAddress = account.address;
+        const token = Cookies.get('accessToken');
+
+        if (token) {
+            setIsBackendLoggedIn(true);
+            lastLoginAddress = currentAddress;
+            return;
+        }
+
+        if (globalLoginLock || lastLoginAddress === currentAddress) {
+            return;
+        }
+
+        const doLogin = async () => {
+            if (globalLoginLock) return;
+
+            globalLoginLock = true;
+            lastLoginAddress = currentAddress;
+            setIsSigningIn(true);
+
+            try {
+                const nonceRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/nonce`);
+                const nonce = await nonceRes.text();
+
+                if (!mountedRef.current) {
+                    globalLoginLock = false;
+                    return;
+                }
+
+                const siweMessage = new SiweMessage({
+                    domain: window.location.host,
+                    address: currentAddress,
+                    statement: "Sign in to Flask App",
+                    uri: window.location.origin,
+                    version: "1",
+                    chainId: ganacheChain.id,
+                    nonce,
+                    issuedAt: new Date().toISOString(),
+                });
+
+                const message = siweMessage.prepareMessage();
+                const signature = await account.signMessage({ message });
+
+                if (!mountedRef.current) {
+                    globalLoginLock = false;
+                    return;
+                }
+
+                const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sign-in`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message, signature }),
+                });
+
+                const result: LoginResponse = await loginRes.json();
+
+                if (!mountedRef.current) {
+                    globalLoginLock = false;
+                    return;
+                }
+
+                if (result.token) {
+                    Cookies.set('accessToken', result.token);
+                    setIsBackendLoggedIn(true);
+                } else {
+                    console.error("Login Failed:", result.message);
+                    lastLoginAddress = "";
+                    if (wallet) disconnect(wallet);
+                }
+            } catch (error) {
+                console.error("SIWE Error:", error);
+                lastLoginAddress = "";
+                if (wallet && mountedRef.current) disconnect(wallet);
+            } finally {
+                globalLoginLock = false;
+                if (mountedRef.current) setIsSigningIn(false);
             }
-
-            const token = Cookies.get('accessToken');
-            if (token) {
-                setIsBackendLoggedIn(true);
-                return;
-            }
-
-            loginAttemptedRef.current = true;
-            await doSIWELogin(account);
         };
 
-        checkLogin();
-    }, [account, isSigningIn, isBackendLoggedIn, doSIWELogin]);
+        doLogin();
+    }, [account?.address, wallet, account, disconnect]);
 
-    const logout = useCallback(() => {
+    const logout = () => {
         if (wallet) disconnect(wallet);
         Cookies.remove('account');
         Cookies.remove('accessToken');
         setIsBackendLoggedIn(false);
-    }, [wallet, disconnect]);
+        lastLoginAddress = "";
+        globalLoginLock = false;
+    };
 
     return {
         account,
