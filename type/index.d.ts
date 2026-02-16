@@ -23,3 +23,16 @@ declare interface Transaction {
 declare interface TransactionListProps {
     transactions: Transaction[];
 }
+
+declare interface CreateNonceResponse {
+    message: string;
+    nonce: string;
+}
+
+declare interface SignInResponse {
+    data?: {
+        access_token: string;
+        address: string;
+    };
+    message: string;
+}

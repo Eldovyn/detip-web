@@ -5,12 +5,13 @@ import NavBar from "@/components/NavBar";
 import { Label } from "@/components/ui/label";
 import { LuUserRound } from "react-icons/lu";
 import { Separator } from "@/components/ui/separator";
-import { IoLocationOutline } from "react-icons/io5";
+import { IoLocationOutline, IoMailOutline } from "react-icons/io5";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const CompleteProfile = () => {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
     const [copied, setCopied] = useState(false);
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -26,7 +27,7 @@ const CompleteProfile = () => {
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        console.log("Saving account...", { username /*, location, avatar*/ });
+        console.log("Saving account...", { username, email });
     };
 
     const donationBaseUrl = "https://detip.app/donate";
@@ -140,6 +141,21 @@ const CompleteProfile = () => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <IoMailOutline size={15} className="text-emerald-500" />
+                                <Label htmlFor="email">Email</Label>
+                            </div>
+                            <input
+                                type="email"
+                                id="email"
+                                placeholder="your@email.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                            />
                         </div>
 
                         <div className="space-y-2">

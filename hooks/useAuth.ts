@@ -3,6 +3,7 @@ import { useActiveAccount, useActiveWallet, useDisconnect } from "thirdweb/react
 import { SiweMessage } from 'siwe';
 import Cookies from 'js-cookie';
 import { ganacheChain } from "@/lib/chains";
+import { authService } from "@/api/authService";
 
 let globalLoginLock = false;
 let lastLoginAddress = "";
@@ -52,8 +53,8 @@ export function useAuth() {
             setIsSigningIn(true);
 
             try {
-                const nonceRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/nonce`);
-                const nonce = await nonceRes.text();
+                const resp = await authService.createNonce();
+                const nonce = resp.data.nonce;
 
                 if (!mountedRef.current) {
                     globalLoginLock = false;
@@ -79,24 +80,21 @@ export function useAuth() {
                     return;
                 }
 
-                const loginRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/sign-in`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ message, signature }),
-                });
-
-                const result: LoginResponse = await loginRes.json();
+                const SignInResponse = await authService.signIn(message, signature);
+                const SignInResp = SignInResponse.data;
+                const data = SignInResp?.data;
+                const accessToken = data?.access_token;
 
                 if (!mountedRef.current) {
                     globalLoginLock = false;
                     return;
                 }
 
-                if (result.token) {
-                    Cookies.set('accessToken', result.token);
+                if (accessToken) {
+                    Cookies.set('accessToken', accessToken);
                     setIsBackendLoggedIn(true);
                 } else {
-                    console.error("Login Failed:", result.message);
+                    console.error("Login Failed:", SignInResp.message);
                     lastLoginAddress = "";
                     if (wallet) disconnect(wallet);
                 }
