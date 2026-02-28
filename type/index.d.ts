@@ -13,20 +13,69 @@ declare interface BalanceCardProps {
 }
 
 declare interface Transaction {
-    hash: string;
-    status: string;
-    time: string;
-    amount: string;
-    fee: string;
+    hash: string
+    from: string
+    to: string
+    value_eth: number
+    gas: number
+    nonce: string
+    block_number: string
+    status: string
+    datetime: string
+    datetime: number
 }
 
-declare interface TransactionListProps {
-    transactions: Transaction[];
+declare interface NonceInput {
+    address: string;
+}
+
+declare interface DataProfile {
+    username?: string;
+    email?: string;
+    location?: string;
+    address?: string;
 }
 
 declare interface CreateNonceResponse {
     message: string;
-    nonce: string;
+    data: {
+        nonce: string;
+    }
+}
+
+declare interface UpdateProfileResponse {
+    message: string;
+    data: DataProfile;
+}
+
+declare interface MetaPage {
+    page: number;
+    limit: number;
+    total_items: number;
+    total_pages: number;
+}
+
+declare interface LinksPage {
+    next: string;
+    prev: string;
+}
+
+declare interface GetTransactionsPageResponse {
+    message: string;
+    data: Transaction[],
+    meta: MetaPage,
+    links: LinksPage
+}
+
+declare interface GetTransactionResponse {
+    message: string;
+    data: Transaction;
+}
+
+declare interface TransactionDetailDialogProps {
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
+    transaction: Transaction | null;
 }
 
 declare interface SignInResponse {
@@ -34,5 +83,10 @@ declare interface SignInResponse {
         access_token: string;
         address: string;
     };
+    message: string;
+}
+
+declare interface UserMeResponse {
+    data?: DataProfile;
     message: string;
 }

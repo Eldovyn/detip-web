@@ -8,14 +8,6 @@ import { TransactionList } from "@/components/TransactionList";
 import { useDTCBalance } from "@/hooks/useDTCBalance";
 import { useAuth } from "@/hooks/useAuth";
 
-const MOCK_TRANSACTIONS = Array.from({ length: 3 }, () => ({
-    hash: "0xaa73e2f186929bb376cd76e7e5144face9b8b54b9cb68c3056ad36db421",
-    status: "Success",
-    time: "12s ago",
-    amount: "0.024 ETH",
-    fee: "0.00042",
-}));
-
 export default function Page() {
     const [menuOpen, setMenuOpen] = useState(false);
     const topup = useTopup();
@@ -51,7 +43,7 @@ export default function Page() {
                         onPaid={topup.handlePaid}
                     />
 
-                    <TransactionList transactions={MOCK_TRANSACTIONS} />
+                    <TransactionList />
                 </div>
             </section>
         </>

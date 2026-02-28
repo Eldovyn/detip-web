@@ -68,11 +68,11 @@ const NavBar = () => {
                             </li>
                             <li>
                                 <Link
-                                    href="/activity"
-                                    aria-current={isActive("/activity") ? "page" : undefined}
+                                    href="/transactions"
+                                    aria-current={isActive("/transactions") ? "page" : undefined}
                                     className="aria-[current=page]:text-emerald-600"
                                 >
-                                    Activity
+                                    Transactions
                                 </Link>
                             </li>
                             <li>
@@ -119,7 +119,7 @@ const NavBar = () => {
                                 aria-current={isActive("/transactions") ? "page" : undefined}
                                 className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
                             >
-                                Activity
+                                Transactions
                             </Link>
                         </li>
                         <li>

@@ -53,8 +53,8 @@ export function useAuth() {
             setIsSigningIn(true);
 
             try {
-                const resp = await authService.createNonce();
-                const nonce = resp.data.nonce;
+                const resp = await authService.createNonce({ address: currentAddress });
+                const nonce = resp.data.data.nonce;
 
                 if (!mountedRef.current) {
                     globalLoginLock = false;
