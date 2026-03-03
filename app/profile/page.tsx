@@ -14,6 +14,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { useFormik } from "formik";
 import { profileService } from "@/api/profileService";
+import { toast } from "sonner";
 
 const CompleteProfile = () => {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -53,11 +54,10 @@ const CompleteProfile = () => {
             return response.data;
         },
         onSuccess: (data) => {
-            console.log(data);
+            toast.success(data?.message || "Profile updated successfully!");
         },
-
-        onError: (error) => {
-            // 
+        onError: () => {
+            toast.error("Failed to update profile. Please try again.");
         },
     });
 
