@@ -85,7 +85,7 @@ const CompleteProfile = () => {
         },
     });
 
-    const donationBaseUrl = "https://detip.app/donate";
+    const donationBaseUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/donate`;
     const cleanUsername = formik.values.username.trim();
     const donationUrl =
         cleanUsername.length > 0
