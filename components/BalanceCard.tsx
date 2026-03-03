@@ -47,6 +47,10 @@ export function BalanceCard({ balance, symbol, menuOpen, onMenuChange, onTopupCl
                             <Link href="/swap">Swap</Link>
                         </DropdownMenuItem>
 
+                        <DropdownMenuItem asChild className={MENU_ITEM}>
+                            <Link href="/staking">Stake</Link>
+                        </DropdownMenuItem>
+
                         <DropdownMenuSeparator className="bg-emerald-100" />
 
                         <DropdownMenuItem asChild className={MENU_ITEM}>
@@ -56,14 +60,18 @@ export function BalanceCard({ balance, symbol, menuOpen, onMenuChange, onTopupCl
                 </DropdownMenu>
             </div>
 
-            <div className="mt-5 flex items-center justify-end gap-2">
+            <div className="mt-5 flex flex-wrap items-center justify-end gap-2">
                 <button type="button" className={SECONDARY_BTN} onClick={onTopupClick}>
                     Top up
                 </button>
 
-                <button type="button" className={PRIMARY_BTN}>
+                <Link href="/swap" className={PRIMARY_BTN}>
                     Swap token
-                </button>
+                </Link>
+
+                <Link href="/staking" className={PRIMARY_BTN}>
+                    Staking token
+                </Link>
             </div>
         </div>
     );
