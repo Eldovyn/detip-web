@@ -11,12 +11,12 @@ import { useQuery } from "@tanstack/react-query";
 import { authService } from "@/api/authService";
 import Cookies from "js-cookie";
 import { useAuth } from "@/hooks/useAuth";
+import { useMutation } from "@tanstack/react-query";
+import { useFormik } from "formik";
+import { profileService } from "@/api/profileService";
 
 const CompleteProfile = () => {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState("");
-    const [location, setLocation] = useState("");
     const [copied, setCopied] = useState(false);
 
     const token = Cookies.get("accessToken");
@@ -43,9 +43,6 @@ const CompleteProfile = () => {
                 return;
             }
 
-            if (profile.username) setUsername(profile.username);
-            if (profile.email) setEmail(profile.email);
-            if (profile.location) setLocation(profile.location);
         }
     }, [userProfile?.data.data, account?.address, logout]);
 
@@ -60,13 +57,46 @@ const CompleteProfile = () => {
         });
     };
 
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        console.log("Saving account...", { username, email });
-    };
+    const { mutate } = useMutation({
+        mutationFn: async (data: DataProfile) => {
+            const response = await profileService.updateProfile(data, token as string);
+            return response.data;
+        },
+        onSuccess: (data) => {
+            console.log(data);
+        },
+
+        onError: (error) => {
+            // 
+        },
+    });
+
+    const formik = useFormik({
+        enableReinitialize: true,
+        initialValues: {
+            username: userProfile?.data.data?.username || "",
+            email: userProfile?.data.data?.email || "",
+            location: userProfile?.data.data?.location || "",
+        },
+        onSubmit: (values, { setSubmitting }) => {
+            try {
+                const { username, email, location } = values;
+                const data: DataProfile = {
+                    username,
+                    email,
+                    location,
+                };
+                mutate(data);
+            } catch (error) {
+                console.error("Terjadi kesalahan:", error);
+            } finally {
+                setSubmitting(false);
+            }
+        },
+    });
 
     const donationBaseUrl = "https://detip.app/donate";
-    const cleanUsername = username.trim();
+    const cleanUsername = formik.values.username.trim();
     const donationUrl =
         cleanUsername.length > 0
             ? `${donationBaseUrl}/${encodeURIComponent(cleanUsername)}`
@@ -95,7 +125,7 @@ const CompleteProfile = () => {
                     </header>
 
                     <form
-                        onSubmit={handleSubmit}
+                        onSubmit={formik.handleSubmit ? formik.handleSubmit : () => { }}
                         className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-6"
                     >
                         <div className="space-y-1">
@@ -151,9 +181,10 @@ const CompleteProfile = () => {
                                 <input
                                     type="text"
                                     id="username"
+                                    name="username"
                                     placeholder="Enter your username"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
+                                    value={formik.values.username}
+                                    onChange={formik.handleChange}
                                     className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                                 />
 
@@ -186,9 +217,10 @@ const CompleteProfile = () => {
                             <input
                                 type="email"
                                 id="email"
+                                name="email"
                                 placeholder="your@email.com"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
+                                value={formik.values.email}
+                                onChange={formik.handleChange}
                                 className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                             />
                         </div>
@@ -201,9 +233,10 @@ const CompleteProfile = () => {
                             <input
                                 type="text"
                                 id="location"
+                                name="location"
                                 placeholder="Jakarta, Bandung, etc."
-                                value={location}
-                                onChange={(e) => setLocation(e.target.value)}
+                                value={formik.values.location}
+                                onChange={formik.handleChange}
                                 className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                             />
                         </div>
@@ -211,9 +244,10 @@ const CompleteProfile = () => {
                         <div className="pt-2 flex justify-end">
                             <button
                                 type="submit"
-                                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white"
+                                disabled={formik.isSubmitting}
+                                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50"
                             >
-                                Save account
+                                {formik.isSubmitting ? "Saving..." : "Save account"}
                             </button>
                         </div>
                     </form>
