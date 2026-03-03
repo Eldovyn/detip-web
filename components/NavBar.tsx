@@ -77,11 +77,20 @@ const NavBar = () => {
                             </li>
                             <li>
                                 <Link
-                                    href="/settings"
-                                    aria-current={isActive("/settings") ? "page" : undefined}
+                                    href="/swap"
+                                    aria-current={isActive("/swap") ? "page" : undefined}
                                     className="aria-[current=page]:text-emerald-600"
                                 >
-                                    Settings
+                                    Swap
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    href="/staking"
+                                    aria-current={isActive("/staking") ? "page" : undefined}
+                                    className="aria-[current=page]:text-emerald-600"
+                                >
+                                    Staking
                                 </Link>
                             </li>
                         </ul>
@@ -138,6 +147,15 @@ const NavBar = () => {
                                 className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
                             >
                                 Swap
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/staking"
+                                aria-current={isActive("/staking") ? "page" : undefined}
+                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                            >
+                                Staking
                             </Link>
                         </li>
                     </ul>
