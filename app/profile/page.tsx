@@ -1,18 +1,53 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import { useState, ChangeEvent, useEffect } from "react";
 import NavBar from "@/components/NavBar";
 import { Label } from "@/components/ui/label";
 import { LuUserRound } from "react-icons/lu";
 import { Separator } from "@/components/ui/separator";
 import { IoLocationOutline, IoMailOutline } from "react-icons/io5";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useQuery } from "@tanstack/react-query";
+import { authService } from "@/api/authService";
+import Cookies from "js-cookie";
+import { useAuth } from "@/hooks/useAuth";
 
 const CompleteProfile = () => {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
+    const [location, setLocation] = useState("");
     const [copied, setCopied] = useState(false);
+
+    const token = Cookies.get("accessToken");
+    const { logout, account } = useAuth();
+    const { data: userProfile, isError } = useQuery({
+        queryKey: ["userMe"],
+        queryFn: () => authService.userMe(token as string),
+        enabled: !!token,
+    });
+
+    useEffect(() => {
+        if (isError) {
+            logout();
+        }
+    }, [isError, logout]);
+
+    useEffect(() => {
+        if (userProfile?.data.data) {
+            const profile = userProfile.data.data;
+
+            // Check if backend address matches connected wallet
+            if (account?.address && profile.address && account.address.toLowerCase() !== profile.address.toLowerCase()) {
+                logout();
+                return;
+            }
+
+            if (profile.username) setUsername(profile.username);
+            if (profile.email) setEmail(profile.email);
+            if (profile.location) setLocation(profile.location);
+        }
+    }, [userProfile?.data.data, account?.address, logout]);
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -167,6 +202,8 @@ const CompleteProfile = () => {
                                 type="text"
                                 id="location"
                                 placeholder="Jakarta, Bandung, etc."
+                                value={location}
+                                onChange={(e) => setLocation(e.target.value)}
                                 className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                             />
                         </div>
