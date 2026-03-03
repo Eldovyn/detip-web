@@ -21,28 +21,18 @@ const CompleteProfile = () => {
 
     const token = Cookies.get("accessToken");
     const { logout, account } = useAuth();
-    const { data: userProfile, isError } = useQuery({
+    const { data: userProfile } = useQuery({
         queryKey: ["userMe"],
         queryFn: () => authService.userMe(token as string),
         enabled: !!token,
     });
 
     useEffect(() => {
-        if (isError) {
-            logout();
-        }
-    }, [isError, logout]);
-
-    useEffect(() => {
         if (userProfile?.data.data) {
             const profile = userProfile.data.data;
-
-            // Check if backend address matches connected wallet
             if (account?.address && profile.address && account.address.toLowerCase() !== profile.address.toLowerCase()) {
                 logout();
-                return;
             }
-
         }
     }, [userProfile?.data.data, account?.address, logout]);
 

@@ -19,16 +19,31 @@ const wallets = [
 
 export function ConnectWallet() {
     const { connect } = useConnectModal();
-    const { account, logout } = useAuth();
+    const { account, needsExplicitAuth, prepareForExplicitAuth, disconnectWallet } = useAuth();
     const { balance, symbol } = useDTCBalance(account?.address);
+
+    const handleConnect = async () => {
+        // Jika wallet sudah ada (dari AutoConnect) tapi butuh re-auth MetaMask,
+        // reset guard dulu agar doLogin bisa retry setelah connect() dipanggil.
+        if (needsExplicitAuth) {
+            prepareForExplicitAuth();
+        }
+        // connect() selalu trigger MetaMask popup (eth_requestAccounts) → fresh auth
+        await connect({ client, wallets });
+    };
+
+    // Tampilkan tombol Connect Wallet jika:
+    // 1. Wallet belum connect sama sekali, ATAU
+    // 2. Wallet connect via AutoConnect tapi MetaMask butuh re-authorize (setelah logout)
+    const showConnectButton = !account || needsExplicitAuth;
 
     return (
         <>
             <AutoConnect client={client} wallets={wallets} />
 
-            {!account ? (
+            {showConnectButton ? (
                 <button
-                    onClick={() => connect({ client, wallets })}
+                    onClick={handleConnect}
                     className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white transition-colors cursor-pointer"
                 >
                     Connect Wallet
@@ -55,11 +70,11 @@ export function ConnectWallet() {
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </div>
                             <code className="text-sm font-mono font-medium text-slate-700">
-                                {account.address.slice(0, 6)}...{account.address.slice(-4)}
+                                {account?.address.slice(0, 6)}...{account?.address.slice(-4)}
                             </code>
                         </div>
                         <button
-                            onClick={logout}
+                            onClick={disconnectWallet}
                             className="text-xs font-semibold text-red-500 cursor-pointer"
                         >
                             ✕
