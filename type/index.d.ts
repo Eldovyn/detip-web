@@ -90,3 +90,8 @@ declare interface UserMeResponse {
     data?: DataProfile;
     message: string;
 }
+
+declare interface GetDonateResponse {
+    message: string;
+    data?: DataProfile;
+}

@@ -4,7 +4,9 @@ import NavBar from "@/components/NavBar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState } from "react";
 import { useParams } from "next/navigation";
-import { LuMessageSquare, LuHeart, LuCoins } from "react-icons/lu";
+import { LuMessageSquare, LuHeart, LuCoins, LuMapPin, LuMail } from "react-icons/lu";
+import { useQuery } from "@tanstack/react-query";
+import { usersService } from "@/api/usersService";
 
 const DonatePage = () => {
     const params = useParams();
@@ -14,12 +16,19 @@ const DonatePage = () => {
     const [message, setMessage] = useState("");
     const [isPending, setIsPending] = useState(false);
 
+    const { data: creatorData, isLoading, isError } = useQuery({
+        queryKey: ["donate", username],
+        queryFn: () => usersService.getDonate(username),
+        enabled: !!username,
+        retry: false,
+    });
+
+    const creator = creatorData?.data?.data;
+
     const handleDonate = async () => {
         if (!amount || parseFloat(amount) <= 0) return;
-
         setIsPending(true);
         try {
-            // TODO: integrate with wallet & payment logic
             console.log("Donating to:", username);
             console.log("Amount (DTC):", amount);
             console.log("Message:", message);
@@ -37,51 +46,71 @@ const DonatePage = () => {
             <NavBar />
             <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
                 <div className="mx-auto w-full max-w-3xl px-4 pb-12 space-y-6">
+
                     {/* Header */}
                     <header className="space-y-1">
                         <h1 className="text-xl font-semibold text-slate-900">Donate</h1>
                         <p className="text-sm text-slate-500">
                             Support{" "}
                             <span className="font-medium text-emerald-700">@{username}</span>{" "}
-                            with a Bitcoin donation.
+                            with a DTC donation.
                         </p>
                     </header>
 
                     {/* Creator Card */}
-                    <div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
-                        <Avatar className="h-14 w-14 ring-2 ring-emerald-100 ring-offset-2 ring-offset-white">
-                            <AvatarImage
-                                src={`https://api.dicebear.com/7.x/initials/svg?seed=${username}`}
-                                className="h-full w-full object-cover"
-                            />
-                            <AvatarFallback>
-                                {username?.[0]?.toUpperCase() ?? "U"}
-                            </AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900 truncate">
-                                @{username}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-0.5">
-                                Thank you for your support! 🙏
-                            </p>
+                    {isLoading ? (
+                        <div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm animate-pulse">
+                            <div className="h-14 w-14 rounded-full bg-slate-200 shrink-0" />
+                            <div className="space-y-2 flex-1">
+                                <div className="h-3.5 w-28 rounded bg-slate-200" />
+                                <div className="h-3 w-40 rounded bg-slate-100" />
+                            </div>
                         </div>
-                        <LuHeart className="ml-auto shrink-0 text-emerald-400" size={20} />
-                    </div>
+                    ) : isError ? (
+                        <div className="flex items-center gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-600">
+                            User <span className="font-semibold ml-1">@{username}</span>&nbsp;not found.
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                            <Avatar className="h-14 w-14 ring-2 ring-emerald-100 ring-offset-2 ring-offset-white shrink-0">
+                                <AvatarImage
+                                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${creator?.username ?? username}`}
+                                    className="h-full w-full object-cover"
+                                />
+                                <AvatarFallback>
+                                    {(creator?.username ?? username)?.[0]?.toUpperCase() ?? "U"}
+                                </AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0 flex-1">
+                                <p className="text-sm font-semibold text-slate-900 truncate">
+                                    @{creator?.username ?? username}
+                                </p>
+                                {creator?.email && (
+                                    <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1 truncate">
+                                        <LuMail size={11} className="text-emerald-400 shrink-0" />
+                                        {creator.email}
+                                    </p>
+                                )}
+                                {creator?.location && (
+                                    <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1 truncate">
+                                        <LuMapPin size={11} className="text-emerald-400 shrink-0" />
+                                        {creator.location}
+                                    </p>
+                                )}
+                            </div>
+                            <LuHeart className="ml-auto shrink-0 text-emerald-400" size={20} />
+                        </div>
+                    )}
 
                     {/* Donate Form */}
                     <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5">
                         <form className="space-y-5">
+
                             {/* Amount */}
                             <div className="space-y-2">
-                                <label
-                                    htmlFor="amount"
-                                    className="text-sm font-medium text-slate-800"
-                                >
+                                <label htmlFor="amount" className="text-sm font-medium text-slate-800">
                                     Donation Amount
                                 </label>
-
-                                {/* Preset buttons */}
                                 <div className="flex flex-wrap gap-2">
                                     {presetAmounts.map((preset) => (
                                         <button
@@ -89,8 +118,8 @@ const DonatePage = () => {
                                             type="button"
                                             onClick={() => setAmount(preset)}
                                             className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 ${amount === preset
-                                                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                                : "border-slate-200 bg-slate-50 text-slate-600 hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700"
+                                                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700"
                                                 }`}
                                         >
                                             <LuCoins size={11} />
@@ -98,8 +127,6 @@ const DonatePage = () => {
                                         </button>
                                     ))}
                                 </div>
-
-                                {/* Custom amount input */}
                                 <div className="flex gap-2">
                                     <input
                                         type="number"
@@ -145,7 +172,7 @@ const DonatePage = () => {
                             <button
                                 type="button"
                                 onClick={handleDonate}
-                                disabled={isPending || !amount || parseFloat(amount) <= 0}
+                                disabled={isPending || !amount || parseFloat(amount) <= 0 || isError}
                                 className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 <LuCoins size={14} />
@@ -153,6 +180,7 @@ const DonatePage = () => {
                             </button>
                         </form>
                     </div>
+
                 </div>
             </section>
         </>
