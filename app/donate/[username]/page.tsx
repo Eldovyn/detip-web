@@ -7,6 +7,9 @@ import { useParams } from "next/navigation";
 import { LuMessageSquare, LuHeart, LuCoins, LuMapPin, LuMail } from "react-icons/lu";
 import { useQuery } from "@tanstack/react-query";
 import { usersService } from "@/api/usersService";
+import { TOPUP_RATE_IDR_PER_DTC, formatIDR } from "@/utils/currency";
+import { QRISDialog } from "@/components/QRISDialog";
+import { LuQrCode } from "react-icons/lu";
 
 const DonatePage = () => {
     const params = useParams();
@@ -15,6 +18,9 @@ const DonatePage = () => {
     const [amount, setAmount] = useState("");
     const [message, setMessage] = useState("");
     const [isPending, setIsPending] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState<"dtc" | "qris">("dtc");
+    const [isQRISOpen, setIsQRISOpen] = useState(false);
+    const [qrisStep, setQrisStep] = useState<"payment" | "success">("payment");
 
     const { data: creatorData, isLoading, isError } = useQuery({
         queryKey: ["donate", username],
@@ -27,6 +33,13 @@ const DonatePage = () => {
 
     const handleDonate = async () => {
         if (!amount || parseFloat(amount) <= 0) return;
+
+        if (paymentMethod === "qris") {
+            setQrisStep("payment");
+            setIsQRISOpen(true);
+            return;
+        }
+
         setIsPending(true);
         try {
             console.log("Donating to:", username);
@@ -39,7 +52,35 @@ const DonatePage = () => {
         }
     };
 
-    const presetAmounts = ["0.0001", "0.0005", "0.001", "0.005"];
+    const handleQRISPaid = () => {
+        setQrisStep("success");
+    };
+
+    const handlePaymentMethodChange = (method: "dtc" | "qris") => {
+        if (method === paymentMethod) return;
+
+        const currentAmount = parseFloat(amount) || 0;
+        let newAmount = "";
+
+        if (method === "qris") {
+            // DTC to IDR
+            newAmount = (currentAmount * TOPUP_RATE_IDR_PER_DTC).toFixed(0);
+        } else {
+            // IDR to DTC
+            newAmount = (currentAmount / TOPUP_RATE_IDR_PER_DTC).toString();
+        }
+
+        setAmount(newAmount === "0" ? "" : newAmount);
+        setPaymentMethod(method);
+    };
+
+    const estimatedValue = paymentMethod === "dtc"
+        ? (parseFloat(amount) || 0) * TOPUP_RATE_IDR_PER_DTC
+        : (parseFloat(amount) || 0) / TOPUP_RATE_IDR_PER_DTC;
+
+    const presetAmounts = paymentMethod === "dtc"
+        ? ["0.0001", "0.0005", "0.001", "0.005"]
+        : ["10000", "50000", "100000", "200000"];
 
     return (
         <>
@@ -104,6 +145,37 @@ const DonatePage = () => {
 
                     {/* Donate Form */}
                     <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5">
+                        <div className="flex p-1 bg-slate-100 rounded-lg w-full max-w-[240px] mx-auto">
+                            <button
+                                type="button"
+                                onClick={() => handlePaymentMethodChange("dtc")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-medium rounded-md transition-all ${paymentMethod === "dtc"
+                                    ? "bg-white text-emerald-700 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700"
+                                    }`}
+                            >
+                                <LuCoins size={14} />
+                                DTC
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handlePaymentMethodChange("qris")}
+                                className={`flex-1 flex items-center justify-center gap-2 py-1.5 text-xs font-medium rounded-md transition-all ${paymentMethod === "qris"
+                                    ? "bg-white text-emerald-700 shadow-sm"
+                                    : "text-slate-500 hover:text-slate-700"
+                                    }`}
+                            >
+                                <LuQrCode size={14} />
+                                QRIS
+                            </button>
+                        </div>
+
+                        <div className="text-center">
+                            <p className="text-[11px] text-slate-400">
+                                Rate: <span className="font-medium text-slate-600">1 DTC = {formatIDR(TOPUP_RATE_IDR_PER_DTC)}</span>
+                            </p>
+                        </div>
+
                         <form className="space-y-5">
 
                             {/* Amount */}
@@ -118,12 +190,12 @@ const DonatePage = () => {
                                             type="button"
                                             onClick={() => setAmount(preset)}
                                             className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 ${amount === preset
-                                                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                                                    : "border-slate-200 bg-slate-50 text-slate-600 hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700"
+                                                ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                                : "border-slate-200 bg-slate-50 text-slate-600 hover:border-emerald-400 hover:bg-emerald-50/60 hover:text-emerald-700"
                                                 }`}
                                         >
-                                            <LuCoins size={11} />
-                                            {preset}
+                                            {paymentMethod === "dtc" ? <LuCoins size={11} /> : <span className="text-[10px] font-bold">Rp</span>}
+                                            {paymentMethod === "qris" ? parseInt(preset).toLocaleString("id-ID") : preset}
                                         </button>
                                     ))}
                                 </div>
@@ -132,17 +204,36 @@ const DonatePage = () => {
                                         type="number"
                                         id="amount"
                                         min={0}
-                                        step="0.00001"
-                                        placeholder="0.00000"
+                                        step={paymentMethod === "dtc" ? "0.00001" : "1"}
+                                        placeholder={paymentMethod === "dtc" ? "0.00000" : "0"}
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
                                         className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                                     />
-                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600">
-                                        <LuCoins size={12} className="text-emerald-500" />
-                                        DTC
+                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 min-w-[70px] justify-center">
+                                        {paymentMethod === "dtc" ? (
+                                            <>
+                                                <LuCoins size={12} className="text-emerald-500" />
+                                                DTC
+                                            </>
+                                        ) : (
+                                            "IDR"
+                                        )}
                                     </span>
                                 </div>
+                                {amount && parseFloat(amount) > 0 && (
+                                    <p className="text-[11px] text-slate-500 animate-in fade-in slide-in-from-top-1">
+                                        {paymentMethod === "dtc" ? (
+                                            <>
+                                                Estimasi pembayaran: <span className="font-semibold text-emerald-700">{formatIDR(estimatedValue as number)}</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                Estimasi: <span className="font-semibold text-emerald-700">{(estimatedValue as number).toFixed(5)} DTC</span>
+                                            </>
+                                        )}
+                                    </p>
+                                )}
                             </div>
 
                             {/* Message */}
@@ -175,14 +266,23 @@ const DonatePage = () => {
                                 disabled={isPending || !amount || parseFloat(amount) <= 0 || isError}
                                 className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                <LuCoins size={14} />
-                                {isPending ? "Processing..." : "Send Donation"}
+                                {paymentMethod === "dtc" ? <LuCoins size={14} /> : <LuQrCode size={14} />}
+                                {isPending ? "Processing..." : paymentMethod === "dtc" ? "Send Donation" : "Generate QRIS"}
                             </button>
                         </form>
                     </div>
 
                 </div>
             </section>
+
+            <QRISDialog
+                isOpen={isQRISOpen}
+                onOpenChange={setIsQRISOpen}
+                amountIDR={paymentMethod === "dtc" ? estimatedValue as number : parseFloat(amount) || 0}
+                username={username}
+                onPaid={handleQRISPaid}
+                step={qrisStep}
+            />
         </>
     );
 };
