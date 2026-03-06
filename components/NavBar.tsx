@@ -86,11 +86,11 @@ const NavBar = () => {
                             </li>
                             <li>
                                 <Link
-                                    href="/staking"
-                                    aria-current={isActive("/staking") ? "page" : undefined}
+                                    href="/yield"
+                                    aria-current={isActive("/yield") ? "page" : undefined}
                                     className="aria-[current=page]:text-emerald-600"
                                 >
-                                    Staking
+                                    Yield
                                 </Link>
                             </li>
                         </ul>
@@ -151,11 +151,11 @@ const NavBar = () => {
                         </li>
                         <li>
                             <Link
-                                href="/staking"
-                                aria-current={isActive("/staking") ? "page" : undefined}
+                                href="/yield"
+                                aria-current={isActive("/yield") ? "page" : undefined}
                                 className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
                             >
-                                Staking
+                                Yield
                             </Link>
                         </li>
                     </ul>

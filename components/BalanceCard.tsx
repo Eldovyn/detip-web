@@ -48,7 +48,7 @@ export function BalanceCard({ balance, symbol, menuOpen, onMenuChange, onTopupCl
                         </DropdownMenuItem>
 
                         <DropdownMenuItem asChild className={MENU_ITEM}>
-                            <Link href="/staking">Stake</Link>
+                            <Link href="/yield">Yield</Link>
                         </DropdownMenuItem>
 
                         <DropdownMenuSeparator className="bg-emerald-100" />
@@ -69,8 +69,8 @@ export function BalanceCard({ balance, symbol, menuOpen, onMenuChange, onTopupCl
                     Swap token
                 </Link>
 
-                <Link href="/staking" className={PRIMARY_BTN}>
-                    Staking token
+                <Link href="/yield" className={PRIMARY_BTN}>
+                    Yield
                 </Link>
             </div>
         </div>

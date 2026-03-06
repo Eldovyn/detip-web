@@ -25,8 +25,8 @@ function getDTCContract() {
     });
 }
 
-/** Approve DTC ke staking contract sebelum stake */
-export function useApproveForStaking() {
+/** Approve DTC ke yield contract sebelum deposit */
+export function useApproveForYield() {
     const { mutate: sendTransaction, isPending, isSuccess, error } = useSendTransaction();
 
     const approve = async (amount: string) => {
@@ -92,8 +92,8 @@ export function useClaimReward() {
     return { claim, isPending, isSuccess, error };
 }
 
-/** Baca staked balance dan pending reward */
-export function useStakingInfo(address?: string) {
+/** Baca deposited balance dan pending yield */
+export function useYieldInfo(address?: string) {
     const [stakedBalance, setStakedBalance] = useState("0");
     const [pendingReward, setPendingReward] = useState("0");
     const [isLoading, setIsLoading] = useState(false);

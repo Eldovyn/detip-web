@@ -88,7 +88,7 @@ const TransactionsPage = () => {
             <NavBar />
 
             <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
-                <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-10">
+                <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pb-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <div className="flex flex-col justify-between gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end">
                         <div>
                             <h1 className="text-xl font-semibold text-slate-900">

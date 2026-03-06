@@ -41,7 +41,7 @@ const SendPage = () => {
         <>
             <NavBar />
             <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
-                <div className="mx-auto w-full max-w-3xl px-4 pb-12 space-y-6">
+                <div className="mx-auto w-full max-w-3xl px-4 pb-12 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                     <header className="space-y-1">
                         <h1 className="text-xl font-semibold text-slate-900">Send DTC</h1>
                         <p className="text-sm text-slate-500">
