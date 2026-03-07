@@ -9,6 +9,21 @@ export function formatCompactNumber(value: string | number) {
     }).format(num);
 }
 
+/**
+ * Format numbers with fixed precision (default 6) and locale support.
+ * Useful for reward tokens or debt where precision is important.
+ */
+export function formatPreciseNumber(value: string | number, decimals: number = 6) {
+    const num = Number(value);
+
+    if (isNaN(num)) return "0," + "0".repeat(decimals);
+
+    return new Intl.NumberFormat("id-ID", {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+    }).format(num);
+}
+
 export function timeAgo(timestamp: string | number): string {
     const now = Date.now();
     const time = typeof timestamp === "number"

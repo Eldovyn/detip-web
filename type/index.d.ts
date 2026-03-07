@@ -95,3 +95,5 @@ declare interface GetDonateResponse {
     message: string;
     data?: DataProfile;
 }
+
+declare type Direction = "ETH_TO_DTC" | "DTC_TO_ETH";

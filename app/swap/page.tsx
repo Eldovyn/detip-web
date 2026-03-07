@@ -2,49 +2,32 @@
 
 import NavBar from "@/components/NavBar";
 import Link from "next/link";
-import { useState } from "react";
-import { LuArrowDownUp } from "react-icons/lu";
+import { LuArrowDownUp, LuLoader } from "react-icons/lu";
+import { toEther } from "thirdweb";
+import { useSwap } from "@/hooks/useSwap";
 
 const PRIMARY_BTN =
-    "inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white";
-
-type Direction = "ETH_TO_DTC" | "DTC_TO_ETH";
+    "inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
 
 const SwapPage = () => {
-    const [direction, setDirection] = useState<Direction>("ETH_TO_DTC");
-    const [amountIn, setAmountIn] = useState("");
-    const rate = 100;
-
-    const isEthToDtc = direction === "ETH_TO_DTC";
-    const inputSymbol = isEthToDtc ? "ETH" : "DTC";
-    const outputSymbol = isEthToDtc ? "DTC" : "ETH";
-
-    const amountOut =
-        amountIn && !Number.isNaN(Number(amountIn))
-            ? (
-                Number(amountIn) *
-                (isEthToDtc ? rate : 1 / rate)
-            )
-                .toString()
-            : "";
-
-    const handleAmountChange = (value: string) => {
-        setAmountIn(value);
-    };
-
-    const toggleDirection = () => {
-        setDirection(isEthToDtc ? "DTC_TO_ETH" : "ETH_TO_DTC");
-        setAmountIn("");
-    };
-
-    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        console.log("Swapping...", {
-            direction,
-            amountIn,
-            amountOut,
-        });
-    };
+    const {
+        account,
+        direction,
+        amountIn,
+        amountOut,
+        isSwapping,
+        isButtonDisabled,
+        isEthToDtc,
+        inputSymbol,
+        outputSymbol,
+        dtcBalance,
+        ethBalance,
+        allowance,
+        amountInWei,
+        handleAmountChange,
+        toggleDirection,
+        handleSwap,
+    } = useSwap();
 
     return (
         <>
@@ -52,7 +35,7 @@ const SwapPage = () => {
 
             <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
                 <div className="mx-auto w-full max-w-3xl px-4 pb-12 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    {/* Header card – selaras dengan home */}
+                    {/* Header card */}
                     <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                             <div className="space-y-1">
@@ -61,7 +44,7 @@ const SwapPage = () => {
                                     {inputSymbol} → {outputSymbol}
                                 </p>
                                 <p className="text-sm text-slate-500">
-                                    1 ETH ≈ {rate} DTC · 1 DTC ≈ {(1 / rate).toFixed(4)} ETH
+                                    {amountOut ? `Expected receive: ${Number(amountOut).toLocaleString("en-US", { maximumFractionDigits: 6 })} ${outputSymbol}` : "Enter an amount to see expected output"}
                                 </p>
                             </div>
 
@@ -85,16 +68,13 @@ const SwapPage = () => {
                     </div>
 
                     {/* Swap form card */}
-                    <form
-                        onSubmit={handleSubmit}
-                        className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5"
-                    >
+                    <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5">
                         {/* From */}
                         <div className="space-y-1">
                             <div className="flex items-center justify-between text-xs text-slate-500">
                                 <span>From</span>
                                 <span className="text-[11px]">
-                                    Balance: 0.00 {inputSymbol}
+                                    Balance: {isEthToDtc ? (ethBalance !== undefined ? Number(toEther(ethBalance)).toLocaleString("en-US", { maximumFractionDigits: 4 }) : "...") : (dtcBalance !== undefined ? Number(toEther(dtcBalance)).toLocaleString("en-US", { maximumFractionDigits: 4 }) : "...")} {inputSymbol}
                                 </span>
                             </div>
                             <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
@@ -123,7 +103,7 @@ const SwapPage = () => {
                             <div className="flex items-center justify-between text-xs text-slate-500">
                                 <span>To (est.)</span>
                                 <span className="text-[11px]">
-                                    Balance: 0.00 {outputSymbol}
+                                    Balance: {isEthToDtc ? (dtcBalance !== undefined ? Number(toEther(dtcBalance)).toLocaleString("en-US", { maximumFractionDigits: 4 }) : "...") : (ethBalance !== undefined ? Number(toEther(ethBalance)).toLocaleString("en-US", { maximumFractionDigits: 4 }) : "...")} {outputSymbol}
                                 </span>
                             </div>
                             <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-3">
@@ -147,13 +127,23 @@ const SwapPage = () => {
                         </div>
 
                         <button
-                            type="submit"
-                            disabled={!amountIn}
+                            type="button"
+                            onClick={handleSwap}
+                            disabled={isButtonDisabled}
                             className={PRIMARY_BTN}
                         >
-                            Swap
+                            {isSwapping ? (
+                                <>
+                                    <LuLoader className="mr-2 h-4 w-4 animate-spin" />
+                                    {direction === "DTC_TO_ETH" && allowance !== undefined && allowance < amountInWei ? "Approving & Swapping..." : "Confirm in Wallet..."}
+                                </>
+                            ) : account ? (
+                                "Swap"
+                            ) : (
+                                "Connect Wallet to Swap"
+                            )}
                         </button>
-                    </form>
+                    </div>
                 </div>
             </section>
         </>

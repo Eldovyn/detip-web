@@ -3,89 +3,305 @@
 import NavBar from "@/components/NavBar";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { LuCoins, LuTrendingUp, LuLock, LuLockOpen, LuGift, LuInfo } from "react-icons/lu";
-import { formatCompactNumber } from "@/utils/format";
-
-// ─── Dummy Data ───────────────────────────────────────────────────────────────
-const DUMMY_WALLET_BALANCE = "5420.500000";
-const DUMMY_DEPOSITED = "1250.000000";
-const DUMMY_ACCRUED = "15.242857";
-const DUMMY_APY = 12.5;
-const DUMMY_BORROW_APY = 8.2;
-const DUMMY_BORROW_LIMIT = "850.000000";
-// ──────────────────────────────────────────────────────────────────────────────
+import { LuCoins, LuTrendingUp, LuLock, LuGift, LuInfo, LuClock } from "react-icons/lu";
+import { formatCompactNumber, formatPreciseNumber } from "@/utils/format";
+import {
+    useYieldInfo,
+    useStakeDTC,
+    useUnstakeDTC,
+    useClaimReward,
+    useApproveForYield,
+    useYieldAllowance,
+    useBorrowDTC,
+    useRepayDTC,
+    useRepayAllDTC
+} from "@/hooks/useYield";
+import { dtcTokenAddress } from "@/lib/contracts/DTCYieldFarm";
+import { toast } from "sonner";
+import { toWei } from "thirdweb";
 
 const YieldPage = () => {
     const { account } = useAuth();
+    const {
+        walletBalance,
+        stakedBalance,
+        pendingReward,
+        userDebt,
+        borrowLimit,
+        poolLiquidity,
+        borrowRate,
+        utilization,
+        rewardRate,
+        totalStaked,
+        assetTokenAddressFromContract,
+        totalBorrowed,
+        maxStakePerUser,
+        poolHardCap,
+        periodFinish,
+        rewardsDuration,
+        isLoading: isInfoLoading,
+        refetch
+    } = useYieldInfo(account?.address);
+
+    const { stake, isPending: isStaking } = useStakeDTC();
+    const { unstake, isPending: isUnstaking } = useUnstakeDTC();
+    const { claim, isPending: isClaiming } = useClaimReward();
+    const { approve, isPending: isApproving } = useApproveForYield();
+    const { borrow, isPending: isBorrowing } = useBorrowDTC();
+    const { repay, isPending: isRepaying } = useRepayDTC();
+    const { repayAll, isPending: isRepayingAll } = useRepayAllDTC();
+
+    // Untuk ngecek allowance sebelum stake & repay
+    const { allowance, refetch: refetchAllowance } = useYieldAllowance(account?.address);
 
     const [mainTab, setMainTab] = useState<"deposit" | "borrow">("deposit");
-
-    // Deposit State (Simulated)
-    const [walletBalance, setWalletBalance] = useState(DUMMY_WALLET_BALANCE);
-    const [depositedBalance, setDepositedBalance] = useState(DUMMY_DEPOSITED);
-    const [accruedYield, setAccruedYield] = useState(DUMMY_ACCRUED);
     const [stakeAmount, setStakeAmount] = useState("");
     const [unstakeAmount, setUnstakeAmount] = useState("");
     const [activeDepositTab, setActiveDepositTab] = useState<"stake" | "unstake">("stake");
 
-    // Borrow State (Simulated)
-    const [borrowedAmount, setBorrowedAmount] = useState("0.000000");
+    // Borrow State
     const [borrowInput, setBorrowInput] = useState("");
     const [repayInput, setRepayInput] = useState("");
     const [activeBorrowTab, setActiveBorrowTab] = useState<"borrow" | "repay">("borrow");
 
-    const [isPending, setIsPending] = useState(false);
-    const [isClaiming, setIsClaiming] = useState(false);
+    // Calculate Reward APY: (rewardRate * secondsPerYear * 100) / totalStaked
+    const SECONDS_PER_YEAR = 31536000;
+    const dynamicAPY = (parseFloat(totalStaked) > 0)
+        ? ((parseFloat(rewardRate) * SECONDS_PER_YEAR * 100) / parseFloat(totalStaked)).toFixed(2)
+        : "0.00";
 
-    // Simulated Actions
-    const handleDeposit = async () => {
-        if (!stakeAmount || parseFloat(stakeAmount) <= 0) return;
-        setIsPending(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setDepositedBalance((prev) => (parseFloat(prev) + parseFloat(stakeAmount)).toFixed(6));
-        setWalletBalance((prev) => (parseFloat(prev) - parseFloat(stakeAmount)).toFixed(6));
-        setStakeAmount("");
-        setIsPending(false);
+    // Mapping custom Solidity revert errors dari ABI ke pesan pengguna
+    const REVERT_ERROR_MAP: Record<string, string> = {
+        "AmountZero": "Jumlah tidak boleh 0.",
+        "PoolCapReached": "Pool sudah mencapai batas maksimum kapasitas.",
+        "UserCapReached": "Anda sudah mencapai batas maksimum deposit per pengguna.",
+        "InsufficientBalance": "Saldo staked Anda tidak mencukupi.",
+        "CollateralTooLow": "Kolateral terlalu rendah untuk melakukan penarikan ini (masih ada hutang aktif).",
+        "InsufficientLiquidity": "Likuiditas pool tidak mencukupi untuk transaksi ini.",
+        "ExceedsBorrowLimit": "Jumlah pinjaman melebihi batas yang diizinkan berdasarkan kolateral Anda.",
+        "InvalidOptimalUtilization": "Nilai optimal utilization tidak valid.",
+        "NoRewardAvailable": "Tidak ada reward yang tersedia untuk diklaim saat ini.",
+        "ReentrancyGuardReentrantCall": "Transaksi terdeteksi sebagai reentrancy, coba lagi.",
+        "SafeERC20FailedOperation": "Operasi transfer token gagal. Pastikan saldo mencukupi.",
+        "OwnableUnauthorizedAccount": "Akun Anda tidak memiliki izin untuk melakukan aksi ini.",
+        "OwnableInvalidOwner": "Alamat owner tidak valid.",
+        "RewardAmountTooHigh": "Jumlah reward terlalu besar untuk didistribusikan.",
+        "RewardPeriodStillActive": "Periode reward masih aktif, tidak bisa diubah.",
+        "ExceedsMaxBorrow": "Jumlah pinjaman melebihi batas maksimum (termasuk bunga).",
+        "LowLiquidity": "Likuiditas pool saat ini terlalu rendah untuk jumlah pinjaman ini.",
+    };
+
+    const getErrorMessage = (error: unknown, fallback: string): string => {
+        // Deep log — console.dir menampilkan properti nested lebih baik dari JSON.stringify
+        try {
+            console.dir(error, { depth: 10 });
+            console.error(`${fallback}:`, JSON.stringify(error, Object.getOwnPropertyNames(error as object)));
+        } catch {
+            console.error(`${fallback}:`, error);
+        }
+        if (!error) return fallback;
+
+        const SELECTORS: Record<string, string> = {
+            "0x2c5211c6": "AmountZero",
+            "0x5479bc04": "PoolCapReached",
+            "0xa741a045": "UserCapReached",
+            "0x92e95a6d": "InsufficientBalance",
+            "0x5e0f0c5e": "CollateralTooLow",
+            "0xbb55fd27": "InsufficientLiquidity",
+            "0x60b8b34c": "ExceedsBorrowLimit",
+            "0x3bfd31e1": "InvalidOptimalUtilization",
+            "0x6a5cfb6d": "NoRewardAvailable",
+            "0x3ee5aeb5": "ReentrancyGuardReentrantCall",
+            "0x5274afe7": "SafeERC20FailedOperation",
+            "0x1e4fbdf7": "OwnableInvalidOwner",
+            "0x118cdaa7": "OwnableUnauthorizedAccount",
+            "0xa6adcea3": "ExceedsMaxBorrow",
+            "0x53d32b73": "LowLiquidity",
+        };
+
+        // Cari revert data / errorName secara rekursif dalam cause chain
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const findInChain = (node: any, depth = 0): string | null => {
+            if (!node || typeof node !== 'object' || depth > 15) return null;
+
+            // cek errorName (beberapa lib Web3 menambahkan ini langsung)
+            const name: string | undefined = node.errorName ?? node.name;
+            if (name && REVERT_ERROR_MAP[name]) return REVERT_ERROR_MAP[name];
+
+            // cek revert data (4-byte selector hex) — bisa string atau object
+            const data: unknown = node.data ?? node.revertData;
+            if (data && typeof data === 'string' && data.length >= 10) {
+                const selector = data.slice(0, 10).toLowerCase();
+                const matched = SELECTORS[selector];
+                if (matched && REVERT_ERROR_MAP[matched]) return REVERT_ERROR_MAP[matched];
+            }
+            // data bisa juga object dari viem { errorName, args }
+            if (data && typeof data === 'object') {
+                const dataObj = data as Record<string, unknown>;
+                if (dataObj.errorName && typeof dataObj.errorName === 'string' && REVERT_ERROR_MAP[dataObj.errorName]) {
+                    return REVERT_ERROR_MAP[dataObj.errorName];
+                }
+            }
+
+            // cek details (viem sering pakai ini)
+            const details: string | undefined = node.details;
+            if (details && typeof details === 'string') {
+                // cek apakah details mengandung selector hex
+                for (const [sel, errName] of Object.entries(SELECTORS)) {
+                    if (details.includes(sel) && REVERT_ERROR_MAP[errName]) return REVERT_ERROR_MAP[errName];
+                }
+                if (!details.startsWith('0x')) return details;
+            }
+
+            // cek shortMessage / reason yang sudah human-readable dari ethers/viem
+            const hint: string | undefined = node.shortMessage ?? node.reason;
+            if (hint && typeof hint === 'string' && !hint.startsWith('0x')) {
+                // cek apakah shortMessage mengandung selector hex
+                for (const [sel, errName] of Object.entries(SELECTORS)) {
+                    if (hint.includes(sel) && REVERT_ERROR_MAP[errName]) return REVERT_ERROR_MAP[errName];
+                }
+            }
+
+            // cek raw message untuk pola "reverted: <reason>"
+            const rawMsg: string | undefined = node.message;
+            if (rawMsg && typeof rawMsg === 'string') {
+                const m = rawMsg.match(/reverted[^:]*:\s*(.+)/i);
+                if (m) return m[1].trim();
+                // cek selector di dalam message juga
+                for (const [sel, errName] of Object.entries(SELECTORS)) {
+                    if (rawMsg.includes(sel) && REVERT_ERROR_MAP[errName]) return REVERT_ERROR_MAP[errName];
+                }
+            }
+
+            // telusuri ke dalam cause, error, atau walk (viem)
+            return findInChain(node.cause, depth + 1)
+                ?? findInChain(node.error, depth + 1)
+                ?? findInChain(node.walk, depth + 1);
+        };
+
+        const found = findInChain(error);
+        if (found) return found;
+
+        // Specific detection for Gas related errors
+        const errorMsg = String(error).toLowerCase() + (error instanceof Error ? error.message.toLowerCase() : "");
+        if (errorMsg.includes("out of gas") || errorMsg.includes("gas limit exceeded") || errorMsg.includes("intrinsic gas")) {
+            return "Transaksi gagal karena Out of Gas (Gas tidak mencukupi). Coba kurangi sedikit jumlah transaksi atau naikkan gas limit di dompet Anda.";
+        }
+        
+        // Cek jika error mengandung kode revert yang tidak terdaftar
+        if (errorMsg.includes("execution reverted")) {
+            return "Transaksi ditolak oleh Smart Contract. Pastikan batas pinjaman/saldo mencukupi.";
+        }
+
+        return fallback;
+    };
+
+
+    const handleStake = async () => {
+        if (!stakeAmount || parseFloat(stakeAmount) <= 0 || !account) return;
+
+        try {
+            const amountInWei = toWei(stakeAmount);
+
+            // Cek Allowance
+            if (!allowance || allowance < amountInWei) {
+                await approve(stakeAmount);
+                await refetchAllowance();
+            }
+
+            await stake(stakeAmount);
+            setStakeAmount("");
+            refetch();
+        } catch (error: unknown) {
+            console.error("Stake error:", error);
+            toast.error(getErrorMessage(error, "Failed to stake DTC"));
+        }
     };
 
     const handleWithdraw = async () => {
-        if (!unstakeAmount || parseFloat(unstakeAmount) <= 0) return;
-        setIsPending(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setDepositedBalance((prev) => Math.max(0, parseFloat(prev) - parseFloat(unstakeAmount)).toFixed(6));
-        setWalletBalance((prev) => (parseFloat(prev) + parseFloat(unstakeAmount)).toFixed(6));
-        setUnstakeAmount("");
-        setIsPending(false);
+        if (!unstakeAmount || parseFloat(unstakeAmount) <= 0 || !account) return;
+
+        try {
+            await unstake(unstakeAmount);
+            setUnstakeAmount("");
+            refetch();
+        } catch (error: unknown) {
+            console.error("Withdraw error:", error);
+            toast.error(getErrorMessage(error, "Failed to withdraw DTC"));
+        }
     };
 
     const handleClaim = async () => {
-        if (parseFloat(accruedYield) <= 0) return;
-        setIsClaiming(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setWalletBalance((prev) => (parseFloat(prev) + parseFloat(accruedYield)).toFixed(6));
-        setAccruedYield("0.000000");
-        setIsClaiming(false);
+        if (parseFloat(pendingReward) <= 0 || !account) return;
+
+        try {
+            await claim();
+            refetch();
+        } catch (error: unknown) {
+            console.error("Claim error:", error);
+            toast.error(getErrorMessage(error, "Failed to claim rewards"));
+        }
     };
 
+    // Actions for Borrow
     const handleBorrow = async () => {
-        if (!borrowInput || parseFloat(borrowInput) <= 0) return;
-        setIsPending(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setBorrowedAmount((prev) => (parseFloat(prev) + parseFloat(borrowInput)).toFixed(6));
-        setWalletBalance((prev) => (parseFloat(prev) + parseFloat(borrowInput)).toFixed(6));
-        setBorrowInput("");
-        setIsPending(false);
+        if (!borrowInput || parseFloat(borrowInput) <= 0 || !account) return;
+
+        try {
+            await borrow(borrowInput);
+            setBorrowInput("");
+            refetch();
+        } catch (error: unknown) {
+            console.error("Borrow error:", error);
+            toast.error(getErrorMessage(error, "Failed to borrow DTC"));
+        }
     };
 
     const handleRepay = async () => {
-        if (!repayInput || parseFloat(repayInput) <= 0) return;
-        setIsPending(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setBorrowedAmount((prev) => Math.max(0, parseFloat(prev) - parseFloat(repayInput)).toFixed(6));
-        setWalletBalance((prev) => (parseFloat(prev) - parseFloat(repayInput)).toFixed(6));
-        setRepayInput("");
-        setIsPending(false);
+        if (!repayInput || parseFloat(repayInput) <= 0 || !account) return;
+
+        try {
+            const amountWei = toWei(repayInput);
+
+            // Cek Allowance untuk Repay (karena ambil DTC dari wallet)
+            if (!allowance || allowance < amountWei) {
+                await approve(repayInput);
+                await refetchAllowance();
+            }
+
+            await repay(repayInput);
+            setRepayInput("");
+            refetch();
+        } catch (error: unknown) {
+            console.error("Repay error:", error);
+            toast.error(getErrorMessage(error, "Failed to repay DTC debt"));
+        }
     };
+
+    const handleRepayAll = async () => {
+        if (parseFloat(userDebt) <= 0 || !account) return;
+
+        try {
+            // repayAll butuh allowance yang cukup untuk menutupi seluruh debt + bunga
+            // Tambah buffer 5% untuk bunga yang terakumulasi antara approve dan repayAll
+            const debtWithBuffer = (parseFloat(userDebt) * 1.05).toFixed(6);
+            const amountWei = toWei(debtWithBuffer);
+
+            if (!allowance || allowance < amountWei) {
+                await approve(debtWithBuffer);
+                await refetchAllowance();
+            }
+
+            await repayAll();
+            setRepayInput("");
+            refetch();
+        } catch (error: unknown) {
+            console.error("RepayAll error:", error);
+            toast.error(getErrorMessage(error, "Failed to repay all DTC debt"));
+        }
+    };
+
+    const isPending = isStaking || isUnstaking || isApproving || isBorrowing || isRepaying || isRepayingAll;
 
     return (
         <>
@@ -95,14 +311,26 @@ const YieldPage = () => {
 
                     {/* Header */}
                     <header className="space-y-1">
-                        <h1 className="text-xl font-semibold text-slate-900 pr-3">Yield</h1>
+                        <h1 className="text-xl font-semibold text-slate-900">Yield</h1>
                         <p className="text-sm text-slate-500">
                             Deposit your DTC tokens to earn yield or borrow against your assets.
                         </p>
                     </header>
 
+                    {/* Asset token mismatch warning */}
+                    {assetTokenAddressFromContract && assetTokenAddressFromContract.toLowerCase() !== dtcTokenAddress.toLowerCase() && (
+                        <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-medium flex items-center gap-2">
+                            <LuInfo size={14} />
+                            <div className="flex flex-col">
+                                <span>Warning: Contract is using a different DTC token address. Transactions may fail.</span>
+                                <span className="text-[10px] opacity-70">Frontend: {dtcTokenAddress}</span>
+                                <span className="text-[10px] opacity-70">Contract: {assetTokenAddressFromContract}</span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Main Tabs */}
-                    <div className="flex p-1 bg-slate-200/50 backdrop-blur-sm rounded-xl w-fit">
+                    <div className="flex p-1 bg-slate-100 rounded-xl w-fit">
                         <button
                             onClick={() => setMainTab("deposit")}
                             className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${mainTab === "deposit"
@@ -124,56 +352,79 @@ const YieldPage = () => {
                     </div>
 
                     {mainTab === "deposit" ? (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+
                             {/* Stats Row */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-3 gap-4">
                                 <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                                        <LuCoins size={12} className="text-emerald-400" />
-                                        Wallet Balance
+                                        <LuCoins size={12} className="text-emerald-500" />
+                                        Wallet
                                     </p>
-                                    <p className="text-lg font-bold text-slate-900">
-                                        {formatCompactNumber(walletBalance)}
-                                        <span className="text-sm font-medium text-slate-400 ml-1">DTC</span>
+                                    <p className="text-base font-semibold text-slate-900">
+                                        {isInfoLoading ? "—" : formatCompactNumber(walletBalance)}
+                                        <span className="text-xs font-medium text-slate-400 ml-1">DTC</span>
                                     </p>
                                 </div>
 
                                 <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                                        <LuLock size={12} className="text-emerald-400" />
+                                        <LuLock size={12} className="text-emerald-500" />
                                         Deposited
                                     </p>
-                                    <p className="text-lg font-bold text-slate-900">
-                                        {formatCompactNumber(depositedBalance)}
-                                        <span className="text-sm font-medium text-slate-400 ml-1">DTC</span>
+                                    <p className="text-base font-semibold text-slate-900">
+                                        {isInfoLoading ? "—" : formatCompactNumber(stakedBalance)}
+                                        <span className="text-xs font-medium text-slate-400 ml-1">DTC</span>
                                     </p>
+                                    {!isInfoLoading && (
+                                        <div className="space-y-0.5">
+                                            <p className="text-[10px] text-slate-400">
+                                                Pool: {formatCompactNumber(totalStaked)} / {formatCompactNumber(poolHardCap)} DTC
+                                            </p>
+                                            <p className="text-[10px] text-slate-400">
+                                                Max/user: {formatCompactNumber(maxStakePerUser)} DTC
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                                        <LuTrendingUp size={12} className="text-emerald-400" />
+                                        <LuTrendingUp size={12} className="text-emerald-500" />
                                         APY
                                     </p>
-                                    <p className="text-lg font-bold text-emerald-600">{DUMMY_APY}%</p>
+                                    <p className="text-base font-semibold text-emerald-600">
+                                        {isInfoLoading ? "—" : `${dynamicAPY}%`}
+                                    </p>
+                                    {!isInfoLoading && parseFloat(rewardRate) > 0 && (
+                                        <p className="text-[10px] text-slate-400">
+                                            {formatCompactNumber(rewardRate)} DTC/s
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Accrued Yield */}
-                            <div className="rounded-2xl border border-emerald-100 bg-linear-to-br from-emerald-50 to-white p-5 shadow-sm flex items-center justify-between gap-4">
-                                <div className="space-y-0.5">
-                                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                            <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm flex items-center justify-between gap-4">
+                                <div>
+                                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mb-1">
                                         <LuGift size={12} className="text-emerald-500" />
                                         Accrued Yield
                                     </p>
-                                    <p className="text-2xl font-bold text-slate-900">
-                                        {accruedYield}
-                                        <span className="text-base font-medium text-slate-400 ml-1.5">DTC</span>
+                                    <p className="text-2xl font-semibold text-slate-900">
+                                        {isInfoLoading ? "0,000000" : formatPreciseNumber(pendingReward)}
+                                        <span className="text-sm font-medium text-slate-400 ml-1.5">DTC</span>
                                     </p>
+                                    {!isInfoLoading && parseFloat(pendingReward) > parseFloat(poolLiquidity) && (
+                                        <p className="text-[10px] text-red-500 font-medium mt-1">
+                                            ⚠ Reward exceeds pool liquidity
+                                        </p>
+                                    )}
                                 </div>
                                 <button
                                     onClick={handleClaim}
-                                    disabled={isClaiming || parseFloat(accruedYield) <= 0 || !account}
-                                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
+                                    disabled={isClaiming || parseFloat(pendingReward) <= 0 || !account}
+                                    className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     <LuGift size={14} />
                                     {isClaiming ? "Claiming..." : "Claim Yield"}
@@ -187,7 +438,7 @@ const YieldPage = () => {
                                         <button
                                             key={tab}
                                             onClick={() => setActiveDepositTab(tab)}
-                                            className={`flex-1 py-3 text-sm font-medium transition-colors focus-visible:outline-none capitalize ${activeDepositTab === tab
+                                            className={`flex-1 py-3 text-sm font-medium transition-colors focus-visible:outline-none ${activeDepositTab === tab
                                                 ? "text-emerald-700 border-b-2 border-emerald-500 bg-emerald-50/50"
                                                 : "text-slate-500 hover:text-slate-700"
                                                 }`}
@@ -197,111 +448,164 @@ const YieldPage = () => {
                                     ))}
                                 </div>
 
-                                <div className="p-6 space-y-4">
+                                <div className="p-5 space-y-4">
                                     {activeDepositTab === "stake" ? (
                                         <>
-                                            <div className="space-y-2">
+                                            <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
-                                                    <label className="text-sm font-medium text-slate-800">Amount to Deposit</label>
-                                                    <button onClick={() => setStakeAmount(walletBalance)} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
+                                                    <label className="text-sm font-medium text-slate-800">Amount</label>
+                                                    <button
+                                                        onClick={() => setStakeAmount(walletBalance)}
+                                                        className="text-xs text-emerald-600 font-medium hover:text-emerald-700"
+                                                    >
                                                         Max: {formatCompactNumber(walletBalance)} DTC
                                                     </button>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="relative flex items-center">
                                                     <input
                                                         type="number"
                                                         placeholder="0.000000"
                                                         value={stakeAmount}
                                                         onChange={(e) => setStakeAmount(e.target.value)}
-                                                        className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus:ring-2 focus:ring-emerald-500/70"
+                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
-                                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600">DTC</span>
+                                                    <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
                                             </div>
                                             <button
-                                                onClick={handleDeposit}
-                                                disabled={isPending || !stakeAmount || !account}
-                                                className="w-full rounded-md bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+                                                onClick={handleStake}
+                                                disabled={isPending || !stakeAmount || parseFloat(stakeAmount) <= 0 || !account}
+                                                className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                {isPending ? "Processing..." : "Deposit DTC"}
+                                                {isApproving ? "Approving..." : isStaking ? "Processing..." : "Deposit DTC"}
                                             </button>
                                         </>
                                     ) : (
                                         <>
-                                            <div className="space-y-2">
+                                            <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
-                                                    <label className="text-sm font-medium text-slate-800">Amount to Withdraw</label>
-                                                    <button onClick={() => setUnstakeAmount(depositedBalance)} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
-                                                        Max: {formatCompactNumber(depositedBalance)} DTC
+                                                    <label className="text-sm font-medium text-slate-800">Amount</label>
+                                                    <button
+                                                        onClick={() => setUnstakeAmount(stakedBalance)}
+                                                        className="text-xs text-emerald-600 font-medium hover:text-emerald-700"
+                                                    >
+                                                        Max: {formatCompactNumber(stakedBalance)} DTC
                                                     </button>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="relative flex items-center">
                                                     <input
                                                         type="number"
                                                         placeholder="0.000000"
                                                         value={unstakeAmount}
                                                         onChange={(e) => setUnstakeAmount(e.target.value)}
-                                                        className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus:ring-2 focus:ring-emerald-500/70"
+                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
-                                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600">DTC</span>
+                                                    <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={handleWithdraw}
-                                                disabled={isPending || !unstakeAmount || !account}
-                                                className="w-full rounded-md bg-slate-800 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-900 disabled:opacity-50 transition-colors"
+                                                disabled={isUnstaking || !unstakeAmount || parseFloat(unstakeAmount) <= 0 || !account}
+                                                className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                {isPending ? "Processing..." : "Withdraw DTC"}
+                                                {isUnstaking ? "Processing..." : "Withdraw DTC"}
                                             </button>
                                         </>
                                     )}
                                 </div>
                             </div>
                         </div>
+
                     ) : (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             {/* Borrow Stats */}
-                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                                        <LuLock size={12} className="text-slate-400" />
+                                        <LuLock size={12} className="text-emerald-500" />
                                         Borrow Limit
                                     </p>
-                                    <p className="text-lg font-bold text-slate-900">
-                                        {formatCompactNumber(DUMMY_BORROW_LIMIT)}
-                                        <span className="text-sm font-medium text-slate-400 ml-1">DTC</span>
+                                    <p className="text-base font-semibold text-slate-900">
+                                        {isInfoLoading ? "—" : formatCompactNumber(borrowLimit)}
+                                        <span className="text-xs font-medium text-slate-400 ml-1">DTC</span>
                                     </p>
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                                        <LuCoins size={12} className="text-slate-400" />
+                                        <LuCoins size={12} className="text-emerald-500" />
                                         Borrowed
                                     </p>
-                                    <p className="text-lg font-bold text-slate-900">
-                                        {formatCompactNumber(borrowedAmount)}
-                                        <span className="text-sm font-medium text-slate-400 ml-1">DTC</span>
+                                    <p className="text-base font-semibold text-slate-900">
+                                        {isInfoLoading ? "—" : formatPreciseNumber(userDebt)}
+                                        <span className="text-xs font-medium text-slate-400 ml-1">DTC</span>
                                     </p>
+                                    {!isInfoLoading && (
+                                        <p className="text-[10px] text-slate-400">
+                                            Total: {formatCompactNumber(totalBorrowed)} DTC
+                                        </p>
+                                    )}
                                 </div>
 
-                                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
-                                        <LuTrendingUp size={12} className="text-slate-400" />
+                                        <LuTrendingUp size={12} className="text-emerald-500" />
                                         Borrow APY
                                     </p>
-                                    <p className="text-lg font-bold text-slate-900">{DUMMY_BORROW_APY}%</p>
+                                    <p className="text-base font-semibold text-slate-900">
+                                        {isInfoLoading ? "—" : `${borrowRate}%`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                                        <LuInfo size={12} className="text-emerald-500" />
+                                        Liquidity
+                                    </p>
+                                    <p className="text-base font-semibold text-emerald-600">
+                                        {isInfoLoading ? "—" : formatCompactNumber(poolLiquidity)}
+                                        <span className="text-xs font-medium text-slate-400 ml-1">DTC</span>
+                                    </p>
+                                    {!isInfoLoading && (
+                                        <p className="text-[10px] text-slate-400">{utilization}% utilized</p>
+                                    )}
+                                </div>
+
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                    <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                                        <LuClock size={12} className="text-emerald-500" />
+                                        Reward Period
+                                    </p>
+                                    <p className="text-base font-semibold text-slate-900">
+                                        {isInfoLoading ? "—" : (() => {
+                                            const now = Math.floor(Date.now() / 1000);
+                                            if (periodFinish === 0) return "Not set";
+                                            if (periodFinish <= now) return "Ended";
+                                            const remaining = periodFinish - now;
+                                            const days = Math.floor(remaining / 86400);
+                                            const hours = Math.floor((remaining % 86400) / 3600);
+                                            return `${days}d ${hours}h left`;
+                                        })()}
+                                    </p>
+                                    {!isInfoLoading && rewardsDuration > 0 && (
+                                        <p className="text-[10px] text-slate-400">
+                                            Duration: {Math.floor(rewardsDuration / 86400)}d
+                                        </p>
+                                    )}
                                 </div>
                             </div>
 
                             {/* Borrow / Repay Form */}
-                            <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                            <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
                                 <div className="flex border-b border-slate-100">
                                     {(["borrow", "repay"] as const).map((tab) => (
                                         <button
                                             key={tab}
                                             onClick={() => setActiveBorrowTab(tab)}
                                             className={`flex-1 py-3 text-sm font-medium transition-colors focus-visible:outline-none capitalize ${activeBorrowTab === tab
-                                                ? "text-slate-900 border-b-2 border-slate-900 bg-slate-50"
+                                                ? "text-emerald-700 border-b-2 border-emerald-500 bg-emerald-50/50"
                                                 : "text-slate-500 hover:text-slate-700"
                                                 }`}
                                         >
@@ -310,76 +614,110 @@ const YieldPage = () => {
                                     ))}
                                 </div>
 
-                                <div className="p-6 space-y-4">
+                                <div className="p-5 space-y-4">
                                     {activeBorrowTab === "borrow" ? (
                                         <>
-                                            <div className="space-y-2">
+                                            <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
                                                     <label className="text-sm font-medium text-slate-800">Amount to Borrow</label>
-                                                    <button onClick={() => setBorrowInput((parseFloat(DUMMY_BORROW_LIMIT) - parseFloat(borrowedAmount)).toFixed(6))} className="text-xs text-slate-600 font-medium hover:text-slate-800">
-                                                        Max: {formatCompactNumber((parseFloat(DUMMY_BORROW_LIMIT) - parseFloat(borrowedAmount)).toFixed(6))} DTC
-                                                    </button>
+                                                    <div className="flex flex-col items-end gap-0.5">
+                                                        <button onClick={() => {
+                                                            const max = parseFloat(borrowLimit) - parseFloat(userDebt);
+                                                            // Round 2: Increase buffer to 1% (0.99) to handle interest more aggressively
+                                                            const maxWithBuffer = Math.max(0, max * 0.99);
+                                                            setBorrowInput(maxWithBuffer.toFixed(6));
+                                                        }} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
+                                                            Max: {formatCompactNumber((parseFloat(borrowLimit) - parseFloat(userDebt)).toFixed(6))} DTC
+                                                        </button>
+                                                        {!isInfoLoading && (
+                                                            <span className="text-[10px] text-slate-400">Rate: {borrowRate}% APY</span>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="relative flex items-center">
                                                     <input
                                                         type="number"
                                                         placeholder="0.000000"
                                                         value={borrowInput}
                                                         onChange={(e) => setBorrowInput(e.target.value)}
-                                                        className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus:ring-2 focus:ring-slate-400"
+                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
-                                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600">DTC</span>
+                                                    <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
                                             </div>
+                                            {borrowInput && parseFloat(borrowInput) > parseFloat(poolLiquidity) && (
+                                                <p className="text-[10px] text-red-500 font-medium bg-red-50 p-2 rounded-lg border border-red-100">
+                                                    ⚠ Borrow amount exceeds available pool liquidity. Transaction will likely fail.
+                                                </p>
+                                            )}
+                                            {parseFloat(stakedBalance) === 0 && (
+                                                <p className="text-[10px] text-orange-600 font-medium bg-orange-50 p-2 rounded-lg border border-orange-100">
+                                                    ⚠ You have 0 DTC staked. Deposit DTC first as collateral before borrowing.
+                                                </p>
+                                            )}
                                             <button
                                                 onClick={handleBorrow}
-                                                disabled={isPending || !borrowInput || !account}
-                                                className="w-full rounded-md bg-slate-900 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-slate-800 disabled:opacity-50 transition-colors"
+                                                disabled={isPending || !borrowInput || parseFloat(borrowInput) <= 0 || parseFloat(borrowInput) > (parseFloat(borrowLimit) - parseFloat(userDebt)) || parseFloat(stakedBalance) === 0 || !account}
+                                                className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                {isPending ? "Processing..." : "Borrow DTC"}
+                                                {isBorrowing ? "Processing..." : "Borrow DTC"}
                                             </button>
                                         </>
                                     ) : (
                                         <>
-                                            <div className="space-y-2">
+                                            <div className="space-y-1.5">
                                                 <div className="flex items-center justify-between">
                                                     <label className="text-sm font-medium text-slate-800">Amount to Repay</label>
-                                                    <button onClick={() => setRepayInput(borrowedAmount)} className="text-xs text-slate-600 font-medium hover:text-slate-800">
-                                                        Max: {formatCompactNumber(borrowedAmount)} DTC
+                                                    <button onClick={() => setRepayInput(userDebt)} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
+                                                        Debt: {formatPreciseNumber(userDebt)} DTC
                                                     </button>
                                                 </div>
-                                                <div className="flex gap-2">
+                                                <div className="relative flex items-center">
                                                     <input
                                                         type="number"
                                                         placeholder="0.000000"
                                                         value={repayInput}
                                                         onChange={(e) => setRepayInput(e.target.value)}
-                                                        className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus:ring-2 focus:ring-slate-400"
+                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
-                                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600">DTC</span>
+                                                    <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
                                             </div>
-                                            <button
-                                                onClick={handleRepay}
-                                                disabled={isPending || !repayInput || !account}
-                                                className="w-full rounded-md bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-                                            >
-                                                {isPending ? "Processing..." : "Repay DTC"}
-                                            </button>
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={handleRepay}
+                                                    disabled={isPending || !repayInput || parseFloat(repayInput) <= 0 || !account}
+                                                    className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    {isRepaying ? "Processing..." : "Repay"}
+                                                </button>
+                                                <button
+                                                    onClick={handleRepayAll}
+                                                    disabled={isPending || parseFloat(userDebt) <= 0 || !account}
+                                                    className="flex-1 rounded-xl border-2 border-emerald-600 bg-white py-2.5 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                >
+                                                    {isRepayingAll ? "Processing..." : "Repay All"}
+                                                </button>
+                                            </div>
+                                            {parseFloat(userDebt) > 0 && (
+                                                <p className="text-[10px] text-slate-400 text-center">
+                                                    💡 Gunakan &quot;Repay All&quot; untuk melunasi seluruh hutang termasuk bunga.
+                                                </p>
+                                            )}
                                         </>
                                     )}
                                 </div>
                             </div>
 
                             {/* Informational Card */}
-                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 space-y-3">
+                            <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm space-y-3">
                                 <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
-                                    <LuInfo size={16} className="text-slate-500" />
+                                    <LuInfo size={14} className="text-emerald-500" />
                                     Borrowing Information
                                 </h4>
-                                <ul className="text-xs text-slate-600 space-y-2 list-disc pl-4">
+                                <ul className="text-xs text-slate-500 space-y-1.5 list-disc pl-4">
                                     <li>Borrowed amounts are added directly to your wallet.</li>
-                                    <li>Interest accrues hourly and is added to your total debt.</li>
+                                    <li>Interest accrues in real-time (per block) and is added to your total debt.</li>
                                     <li>Ensure your collateral stays above the minimum ratio to avoid liquidation.</li>
                                 </ul>
                             </div>
