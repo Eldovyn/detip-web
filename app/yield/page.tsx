@@ -486,10 +486,25 @@ const YieldPage = () => {
                                                 <div className="flex items-center justify-between">
                                                     <label className="text-sm font-medium text-slate-800">Amount</label>
                                                     <button
-                                                        onClick={() => setUnstakeAmount(stakedBalance)}
+                                                        onClick={() => {
+                                                            const staked = parseFloat(stakedBalance);
+                                                            const debt = parseFloat(userDebt);
+                                                            if (debt <= 0) {
+                                                                setUnstakeAmount(stakedBalance);
+                                                                return;
+                                                            }
+                                                            
+                                                            // Calculate max withdrawable while keeping enough collateral for debt
+                                                            // staked - unstakeAmount >= (debt / (borrowLimitPercentage / 100))
+                                                            // unstakeAmount <= staked - (debt * 100 / borrowLimitPercentage)
+                                                            // Add 2% safety buffer for interest accrual
+                                                            const minCollateralNeeded = (debt * 1.02 * 100) / 50; 
+                                                            const maxUnstake = Math.max(0, staked - minCollateralNeeded);
+                                                            setUnstakeAmount(maxUnstake.toFixed(6));
+                                                        }}
                                                         className="text-xs text-emerald-600 font-medium hover:text-emerald-700"
                                                     >
-                                                        Max: {formatCompactNumber(stakedBalance)} DTC
+                                                        Max: { (parseFloat(userDebt) > 0) ? formatCompactNumber(Math.max(0, parseFloat(stakedBalance) - (parseFloat(userDebt) * 1.02 * 100) / 50).toFixed(6)) : formatCompactNumber(stakedBalance) } DTC
                                                     </button>
                                                 </div>
                                                 <div className="relative flex items-center">

@@ -32,6 +32,7 @@ export function useStakeDTC() {
             contract: dtcYieldFarmContract,
             method: "function stake(uint256 amount)",
             params: [amountInWei],
+            gas: BigInt(500000),
         });
         return await sendTransaction(transaction);
     };
@@ -49,6 +50,7 @@ export function useUnstakeDTC() {
             contract: dtcYieldFarmContract,
             method: "function withdraw(uint256 amount)",
             params: [amountInWei],
+            gas: BigInt(500000), // Manual high gas limit to resolve "Out of Gas" on withdraw
         });
         return await sendTransaction(transaction);
     };
@@ -65,6 +67,7 @@ export function useClaimReward() {
             contract: dtcYieldFarmContract,
             method: "function getReward()",
             params: [],
+            gas: BigInt(500000),
         });
         return await sendTransaction(transaction);
     };
