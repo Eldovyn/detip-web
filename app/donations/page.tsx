@@ -282,7 +282,7 @@ const DonationsPage = () => {
                                 </div>
 
                                 <Link 
-                                    href="/browse"
+                                    href="/"
                                     className="block w-full text-center mt-6 py-2.5 px-4 rounded-xl border border-emerald-100 bg-emerald-50/30 text-emerald-700 text-xs font-semibold hover:bg-emerald-50 transition-colors"
                                 >
                                     Browse more creators

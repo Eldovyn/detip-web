@@ -73,7 +73,7 @@ const NavBar = () => {
                                 <Link
                                     href="/"
                                     aria-current={isActive("/") ? "page" : undefined}
-                                    className="aria-[current=page]:text-emerald-600"
+                                    className="aria-[current=page]:text-emerald-600 font-medium"
                                 >
                                     Home
                                 </Link>
@@ -118,11 +118,29 @@ const NavBar = () => {
                             <li className="menu-title text-slate-400 mt-2">Personal</li>
                             <li>
                                 <Link
+                                    href="/portfolio"
+                                    aria-current={isActive("/portfolio") ? "page" : undefined}
+                                    className="aria-[current=page]:text-emerald-600 font-medium"
+                                >
+                                    Portfolio
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
                                     href="/transactions"
                                     aria-current={isActive("/transactions") ? "page" : undefined}
                                     className="aria-[current=page]:text-emerald-600"
                                 >
                                     Transactions
+                                </Link>
+                            </li>
+                            <li>
+                                <Link
+                                    href="/profile"
+                                    aria-current={isActive("/profile") ? "page" : undefined}
+                                    className="aria-[current=page]:text-emerald-600"
+                                >
+                                    Settings
                                 </Link>
                             </li>
                         </ul>
@@ -180,6 +198,16 @@ const NavBar = () => {
                                     </Link>
                                 </li>
                             </ul>
+                        </li>
+
+                        <li>
+                            <Link
+                                href="/portfolio"
+                                aria-current={isActive("/portfolio") ? "page" : undefined}
+                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                            >
+                                Portfolio
+                            </Link>
                         </li>
 
                         <li>

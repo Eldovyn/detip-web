@@ -124,7 +124,7 @@ const FavoritesPage = () => {
 
                         <div className="flex items-center gap-3">
                             <Link 
-                                href="/browse"
+                                href="/"
                                 className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-slate-200 text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700 transition-all"
                             >
                                 <LuSearch size={14} />
@@ -185,7 +185,7 @@ const FavoritesPage = () => {
                             <h3 className="font-bold text-slate-900">No favorites found</h3>
                             <p className="text-sm text-slate-500 mt-1 mb-6">Try a different search term or discover new creators.</p>
                             <Link 
-                                href="/browse"
+                                href="/"
                                 className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all"
                             >
                                 Browse All Creators

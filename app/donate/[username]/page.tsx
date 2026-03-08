@@ -36,8 +36,8 @@ const DonatePage = () => {
 
     useEffect(() => {
         if (account?.address && creator?.address && account.address.toLowerCase() === creator.address.toLowerCase()) {
-            console.log("DonatePage: Self-donation detected. Redirecting to /browse.");
-            router.push("/browse");
+            console.log("DonatePage: Self-donation detected. Redirecting to /.");
+            router.push("/");
         }
     }, [account, creator, router]);
 
