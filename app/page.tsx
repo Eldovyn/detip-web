@@ -128,8 +128,8 @@ const BrowseCreatorsPage = () => {
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">Status</p>
                                                     <p className="text-sm font-black text-slate-900">Active</p>
                                                 </div>
-                                                <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                                                    <LuHeart size={18} className="group-hover:fill-current" />
+                                                <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer">
+                                                    <LuHeart size={18} className="hover:fill-current" />
                                                 </div>
                                             </div>
                                         </Link>
