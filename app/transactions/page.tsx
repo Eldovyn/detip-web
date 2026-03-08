@@ -139,7 +139,6 @@ const TransactionsPage = () => {
                         </div>
                     </div>
 
-                    {/* Search Results */}
                     {isSearching && (
                         <div className="rounded-xl border border-slate-200 bg-white p-4">
                             <h3 className="text-sm font-medium text-slate-900 mb-3">
@@ -194,7 +193,6 @@ const TransactionsPage = () => {
                         </div>
                     )}
 
-                    {/* Regular Transaction List */}
                     {!isSearching && (
                         <>
                             <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">

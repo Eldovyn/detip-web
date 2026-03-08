@@ -23,18 +23,12 @@ export function ConnectWallet() {
     const { balance, symbol } = useDTCBalance(account?.address);
 
     const handleConnect = async () => {
-        // Jika wallet sudah ada (dari AutoConnect) tapi butuh re-auth MetaMask,
-        // reset guard dulu agar doLogin bisa retry setelah connect() dipanggil.
         if (needsExplicitAuth) {
             prepareForExplicitAuth();
         }
-        // connect() selalu trigger MetaMask popup (eth_requestAccounts) → fresh auth
         await connect({ client, wallets });
     };
 
-    // Tampilkan tombol Connect Wallet jika:
-    // 1. Wallet belum connect sama sekali, ATAU
-    // 2. Wallet connect via AutoConnect tapi MetaMask butuh re-authorize (setelah logout)
     const showConnectButton = !account || needsExplicitAuth;
 
     return (

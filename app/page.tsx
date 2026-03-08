@@ -52,7 +52,6 @@ const BrowseCreatorsPage = () => {
             <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
                 <div className="mx-auto w-full max-w-6xl px-4 pb-20 space-y-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
-                    {/* Header */}
                     <div className="text-center space-y-4 max-w-2xl mx-auto">
                         <div className="inline-flex items-center gap-2 bg-emerald-100 px-3 py-1 rounded-full text-emerald-700 text-xs font-bold uppercase tracking-wider">
                             <LuTrophy size={14} className="text-emerald-500" />
@@ -68,7 +67,6 @@ const BrowseCreatorsPage = () => {
                         </p>
                     </div>
 
-                    {/* Search - Currently UI only as backend search for donates isn't implemented */}
                     <div className="bg-white rounded-3xl border border-emerald-100 p-6 shadow-sm">
                         <div className="relative w-full">
                             <LuSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
@@ -147,7 +145,6 @@ const BrowseCreatorsPage = () => {
                                 </div>
                             )}
 
-                            {/* Pagination Logic matching Transactions Page */}
                             {data?.meta && data.meta.total_pages > 1 && (
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-10 px-2">
                                     <div className="text-sm text-slate-500 order-2 sm:order-1">

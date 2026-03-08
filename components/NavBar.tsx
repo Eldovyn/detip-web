@@ -22,7 +22,6 @@ const NavBar = () => {
                     width: 20px !important;
                     height: 20px !important;
                 }
-                /* Kill surprise backgrounds on focus/active */
                 .navbar .dropdown div[role="button"]:focus,
                 .navbar .dropdown div[role="button"]:active,
                 .navbar .menu li a:focus,
@@ -32,12 +31,12 @@ const NavBar = () => {
                     outline: none !important;
                 }
                 .navbar .dropdown-content li a:hover {
-                    background-color: #ecfdf5 !important; /* emerald-50 */
-                    color: #047857 !important; /* emerald-700 */
+                    background-color: #ecfdf5 !important;
+                    color: #047857 !important;
                 }
                 .navbar .dropdown-content li a:active,
                 .navbar .dropdown-content li a:focus {
-                    background-color: #d1fae5 !important; /* emerald-100 */
+                    background-color: #d1fae5 !important;
                 }
                 /* Arrow Animation */
                 .navbar .dropdown:focus-within svg.chevron {
@@ -164,7 +163,6 @@ const NavBar = () => {
                             </Link>
                         </li>
                         
-                        {/* Finance Dropdown - Click based for better reliability */}
                         <li className="dropdown">
                             <div 
                                 tabIndex={0} 

@@ -10,6 +10,9 @@ const PRIMARY_BTN =
     "inline-flex w-full items-center justify-center rounded-md bg-emerald-600 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
 
 const SwapPage = () => {
+    const swap = useSwap();
+    if (typeof swap === "function") return null; // Safety check for unexpected return
+
     const {
         account,
         direction,
@@ -27,7 +30,7 @@ const SwapPage = () => {
         handleAmountChange,
         toggleDirection,
         handleSwap,
-    } = useSwap();
+    } = swap;
 
     return (
         <>
@@ -35,7 +38,6 @@ const SwapPage = () => {
 
             <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
                 <div className="mx-auto w-full max-w-3xl px-4 pb-12 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                    {/* Header card */}
                     <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
                         <div className="flex items-start justify-between gap-4">
                             <div className="space-y-1">
@@ -67,9 +69,7 @@ const SwapPage = () => {
                         </div>
                     </div>
 
-                    {/* Swap form card */}
                     <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5">
-                        {/* From */}
                         <div className="space-y-1">
                             <div className="flex items-center justify-between text-xs text-slate-500">
                                 <span>From</span>
@@ -98,7 +98,6 @@ const SwapPage = () => {
                             </div>
                         </div>
 
-                        {/* To */}
                         <div className="space-y-1">
                             <div className="flex items-center justify-between text-xs text-slate-500">
                                 <span>To (est.)</span>

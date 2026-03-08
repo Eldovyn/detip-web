@@ -36,7 +36,6 @@ const DonatePage = () => {
 
     useEffect(() => {
         if (account?.address && creator?.address && account.address.toLowerCase() === creator.address.toLowerCase()) {
-            console.log("DonatePage: Self-donation detected. Redirecting to /.");
             router.push("/");
         }
     }, [account, creator, router]);
@@ -52,9 +51,7 @@ const DonatePage = () => {
 
         setIsPending(true);
         try {
-            console.log("Donating to:", username);
-            console.log("Amount (DTC):", amount);
-            console.log("Message:", message);
+            // Implementation for DTC donation will go here
         } catch (error) {
             console.error("Donation failed:", error);
         } finally {
@@ -153,7 +150,7 @@ const DonatePage = () => {
                         </div>
                     )}
 
-                    {/* Donate Form */}
+
                     <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5">
                         <div className="flex p-1 bg-slate-100 rounded-lg w-full max-w-[240px] mx-auto">
                             <button
@@ -188,7 +185,6 @@ const DonatePage = () => {
 
                         <form className="space-y-5">
 
-                            {/* Amount */}
                             <div className="space-y-2">
                                 <label htmlFor="amount" className="text-sm font-medium text-slate-800">
                                     Donation Amount
@@ -246,7 +242,6 @@ const DonatePage = () => {
                                 )}
                             </div>
 
-                            {/* Message */}
                             <div className="space-y-2">
                                 <label
                                     htmlFor="message"
@@ -269,7 +264,6 @@ const DonatePage = () => {
                                 </p>
                             </div>
 
-                            {/* Submit */}
                             <button
                                 type="button"
                                 onClick={handleDonate}

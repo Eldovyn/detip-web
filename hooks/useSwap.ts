@@ -12,7 +12,6 @@ export function useSwap() {
     const [amountIn, setAmountIn] = useState("");
     const [isSwapping, setIsSwapping] = useState(false);
 
-    // Write Transcation Hooks
     const { mutate: sendSwapTx } = useSendTransaction();
     const { mutate: sendApproveTx } = useSendTransaction();
 
@@ -20,14 +19,12 @@ export function useSwap() {
     const inputSymbol = isEthToDtc ? "ETH" : "DTC";
     const outputSymbol = isEthToDtc ? "DTC" : "ETH";
 
-    // Read Reserves
     const { data: reserves } = useReadContract({
         contract: dtcSwapContract,
         method: "getReserves",
         params: [],
     }) as { data: readonly [bigint, bigint] | undefined };
 
-    // Read Balances
     const { data: dtcBalanceData } = useWalletBalance({
         client,
         chain: ganacheChain,
@@ -43,14 +40,12 @@ export function useSwap() {
     });
     const ethBalance = ethBalanceData?.value;
 
-    // Read Allowance
     const { data: allowance, refetch: refetchAllowance, isLoading: isAllowanceLoading } = useReadContract({
         contract: dtcTokenContract,
         method: "allowance",
         params: [account?.address || "0x0000000000000000000000000000000000000000", dtcSwapAddress],
     }) as { data: bigint | undefined, refetch: () => void, isLoading: boolean };
 
-    // Calculate Amount Out using smart contract logic for accuracy
     const amountInWei = amountIn && !Number.isNaN(Number(amountIn)) ? toWei(amountIn) : BigInt(0);
 
     const { data: expectedAmountOutWei } = useReadContract({
@@ -60,13 +55,12 @@ export function useSwap() {
             amountInWei,
             isEthToDtc ? reserves[0] : reserves[1],
             isEthToDtc ? reserves[1] : reserves[0]
-        ] : [BigInt(0), BigInt(1), BigInt(1)], // Dummy params if reserves aren't loaded to avoid reverted call
+        ] : [BigInt(0), BigInt(1), BigInt(1)],
     }) as { data: bigint | undefined };
 
     const amountOut = amountInWei > BigInt(0) && expectedAmountOutWei ? toEther(expectedAmountOutWei) : "";
 
     const handleAmountChange = (value: string) => {
-        // Allow empty or numeric values with single decimal point
         if (value === "" || /^\d*\.?\d*$/.test(value)) {
             setAmountIn(value);
         }
@@ -83,8 +77,6 @@ export function useSwap() {
         setIsSwapping(true);
         try {
             if (isEthToDtc) {
-                // ETH to DTC (Buy)
-                // Assuming minimum 95% of expected output (5% slippage tolerance)
                 const minDtcOut = expectedAmountOutWei ? (expectedAmountOutWei * BigInt(95)) / BigInt(100) : BigInt(0);
 
                 const tx = prepareContractCall({
@@ -105,9 +97,6 @@ export function useSwap() {
                     }
                 });
             } else {
-                // DTC to ETH (Sell)
-
-                // Safety check: if allowance is still loading or undefined, don't skip approve
                 if (allowance === undefined) {
                     if (isAllowanceLoading) {
                         toast.info("Fetching allowance data... Please wait.");
@@ -119,7 +108,6 @@ export function useSwap() {
                     return;
                 }
 
-                // Check allowance
                 if (allowance < amountInWei) {
                     toast.info("Approving DTC token first...");
                     const approveTx = prepareContractCall({
@@ -143,7 +131,6 @@ export function useSwap() {
                                 }
 
                                 toast.success("Token approved! Initiating swap...", { id: "approve-toast" });
-                                // Small delay to ensure RPC state is consistent
                                 await new Promise(resolve => setTimeout(resolve, 1000));
                                 refetchAllowance();
                                 executeSwapDtcToEth();
@@ -172,7 +159,6 @@ export function useSwap() {
     };
 
     const executeSwapDtcToEth = () => {
-        // Assuming minimum 95% of expected output (5% slippage tolerance)
         const minEthOut = expectedAmountOutWei ? (expectedAmountOutWei * BigInt(95)) / BigInt(100) : BigInt(0);
 
         const tx = prepareContractCall({
@@ -196,15 +182,10 @@ export function useSwap() {
         });
     };
 
-    // For when buying ETH to DTC, it handles resetting state
-    useEffect(() => {
         if (isEthToDtc && isSwapping) {
-            // We set it to false when we send it to wallet in this flow since we don't await approval
-            // But normally we want to trace transaction events
             const timeout = setTimeout(() => setIsSwapping(false), 3000);
             return () => clearTimeout(timeout);
         }
-    }, [isSwapping, isEthToDtc]);
 
     const isButtonDisabled = !amountIn || Number(amountIn) <= 0 || isSwapping || !account;
 

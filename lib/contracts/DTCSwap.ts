@@ -12,8 +12,7 @@ export const dtcSwapContract = getContract({
     address: dtcSwapAddress,
     chain: ganacheChain,
     client,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    abi: swapAbiRaw as any, // Cast as any because Thirdweb ABI typing is strict but we want to auto-use JSON
+    abi: swapAbiRaw as any,
 });
 
 export const dtcTokenContract = getContract({

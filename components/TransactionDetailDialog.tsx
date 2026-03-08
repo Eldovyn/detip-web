@@ -81,7 +81,6 @@ function InfoRow({
     );
 }
 
-// AlertCircle icon for failed status
 function AlertCircle({ size = 24, className = "" }: { size?: number; className?: string }) {
     return (
         <svg
@@ -116,7 +115,6 @@ export function TransactionDetailDialog({
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-lg bg-white rounded-2xl p-0 gap-0 overflow-hidden border border-slate-200 shadow-xl">
-                {/* Header */}
                 <div className="p-6 pb-4 border-b border-slate-100 bg-linear-to-b from-slate-50 to-white pt-10">
                     <div className="flex items-center justify-between">
                         <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-3">
@@ -141,9 +139,7 @@ export function TransactionDetailDialog({
                     </p>
                 </div>
 
-                {/* Content */}
                 <div className="p-6 space-y-5">
-                    {/* Amount Card */}
                     <div className="rounded-2xl bg-linear-to-br from-emerald-50 via-emerald-50/50 to-white border border-emerald-100 p-5">
                         <div className="flex items-center gap-2 text-emerald-700 mb-2">
                             <ArrowUpRight size={16} className="text-emerald-500" />
@@ -154,7 +150,6 @@ export function TransactionDetailDialog({
                         </p>
                     </div>
 
-                    {/* Transaction Hash */}
                     <div className="space-y-3">
                         <div className="flex items-center gap-2 text-slate-500">
                             <Hash size={14} className="text-slate-400" />
@@ -168,7 +163,6 @@ export function TransactionDetailDialog({
                         </div>
                     </div>
 
-                    {/* From & To */}
                     <div className="grid grid-cols-1 gap-3">
                         <div className="rounded-xl p-4 bg-slate-50 border border-slate-200 space-y-3">
                             <div className="flex items-center gap-2 text-slate-500">
@@ -197,7 +191,6 @@ export function TransactionDetailDialog({
                         </div>
                     </div>
 
-                    {/* Additional Details */}
                     <div className="rounded-xl border border-slate-200 p-4 space-y-4">
                         <InfoRow
                             label="Gas Fee"

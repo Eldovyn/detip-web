@@ -149,7 +149,6 @@ const DonationsPage = () => {
                     </header>
 
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Main Content - Donation List */}
                         <div className="lg:col-span-2 space-y-4">
                             <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">
                                 Recent Activity
@@ -201,7 +200,6 @@ const DonationsPage = () => {
                                 ))}
                             </div>
 
-                            {/* Pagination Controls */}
                             {totalPages > 1 && (
                                 <div className="flex items-center justify-center gap-2 pt-6">
                                     <button
@@ -241,7 +239,6 @@ const DonationsPage = () => {
                             )}
                         </div>
 
-                        {/* Sidebar - Favorites */}
                         <div className="space-y-6">
                             <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm sticky top-24">
                                 <div className="flex items-center justify-between mb-5">

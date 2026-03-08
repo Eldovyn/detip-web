@@ -51,7 +51,6 @@ const YieldPage = () => {
     const { repay, isPending: isRepaying } = useRepayDTC();
     const { repayAll, isPending: isRepayingAll } = useRepayAllDTC();
 
-    // Untuk ngecek allowance sebelum stake & repay
     const { allowance, refetch: refetchAllowance } = useYieldAllowance(account?.address);
 
     const [mainTab, setMainTab] = useState<"deposit" | "borrow">("deposit");
@@ -59,18 +58,15 @@ const YieldPage = () => {
     const [unstakeAmount, setUnstakeAmount] = useState("");
     const [activeDepositTab, setActiveDepositTab] = useState<"stake" | "unstake">("stake");
 
-    // Borrow State
     const [borrowInput, setBorrowInput] = useState("");
     const [repayInput, setRepayInput] = useState("");
     const [activeBorrowTab, setActiveBorrowTab] = useState<"borrow" | "repay">("borrow");
 
-    // Calculate Reward APY: (rewardRate * secondsPerYear * 100) / totalStaked
     const SECONDS_PER_YEAR = 31536000;
     const dynamicAPY = (parseFloat(totalStaked) > 0)
         ? ((parseFloat(rewardRate) * SECONDS_PER_YEAR * 100) / parseFloat(totalStaked)).toFixed(2)
         : "0.00";
 
-    // Mapping custom Solidity revert errors dari ABI ke pesan pengguna
     const REVERT_ERROR_MAP: Record<string, string> = {
         "AmountZero": "Jumlah tidak boleh 0.",
         "PoolCapReached": "Pool sudah mencapai batas maksimum kapasitas.",
@@ -92,9 +88,7 @@ const YieldPage = () => {
     };
 
     const getErrorMessage = (error: unknown, fallback: string): string => {
-        // Deep log — console.dir menampilkan properti nested lebih baik dari JSON.stringify
         try {
-            console.dir(error, { depth: 10 });
             console.error(`${fallback}:`, JSON.stringify(error, Object.getOwnPropertyNames(error as object)));
         } catch {
             console.error(`${fallback}:`, error);
@@ -119,23 +113,18 @@ const YieldPage = () => {
             "0x53d32b73": "LowLiquidity",
         };
 
-        // Cari revert data / errorName secara rekursif dalam cause chain
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const findInChain = (node: any, depth = 0): string | null => {
             if (!node || typeof node !== 'object' || depth > 15) return null;
 
-            // cek errorName (beberapa lib Web3 menambahkan ini langsung)
             const name: string | undefined = node.errorName ?? node.name;
             if (name && REVERT_ERROR_MAP[name]) return REVERT_ERROR_MAP[name];
 
-            // cek revert data (4-byte selector hex) — bisa string atau object
             const data: unknown = node.data ?? node.revertData;
             if (data && typeof data === 'string' && data.length >= 10) {
                 const selector = data.slice(0, 10).toLowerCase();
                 const matched = SELECTORS[selector];
                 if (matched && REVERT_ERROR_MAP[matched]) return REVERT_ERROR_MAP[matched];
             }
-            // data bisa juga object dari viem { errorName, args }
             if (data && typeof data === 'object') {
                 const dataObj = data as Record<string, unknown>;
                 if (dataObj.errorName && typeof dataObj.errorName === 'string' && REVERT_ERROR_MAP[dataObj.errorName]) {
@@ -143,37 +132,30 @@ const YieldPage = () => {
                 }
             }
 
-            // cek details (viem sering pakai ini)
             const details: string | undefined = node.details;
             if (details && typeof details === 'string') {
-                // cek apakah details mengandung selector hex
                 for (const [sel, errName] of Object.entries(SELECTORS)) {
                     if (details.includes(sel) && REVERT_ERROR_MAP[errName]) return REVERT_ERROR_MAP[errName];
                 }
                 if (!details.startsWith('0x')) return details;
             }
 
-            // cek shortMessage / reason yang sudah human-readable dari ethers/viem
             const hint: string | undefined = node.shortMessage ?? node.reason;
             if (hint && typeof hint === 'string' && !hint.startsWith('0x')) {
-                // cek apakah shortMessage mengandung selector hex
                 for (const [sel, errName] of Object.entries(SELECTORS)) {
                     if (hint.includes(sel) && REVERT_ERROR_MAP[errName]) return REVERT_ERROR_MAP[errName];
                 }
             }
 
-            // cek raw message untuk pola "reverted: <reason>"
             const rawMsg: string | undefined = node.message;
             if (rawMsg && typeof rawMsg === 'string') {
                 const m = rawMsg.match(/reverted[^:]*:\s*(.+)/i);
                 if (m) return m[1].trim();
-                // cek selector di dalam message juga
                 for (const [sel, errName] of Object.entries(SELECTORS)) {
                     if (rawMsg.includes(sel) && REVERT_ERROR_MAP[errName]) return REVERT_ERROR_MAP[errName];
                 }
             }
 
-            // telusuri ke dalam cause, error, atau walk (viem)
             return findInChain(node.cause, depth + 1)
                 ?? findInChain(node.error, depth + 1)
                 ?? findInChain(node.walk, depth + 1);
@@ -182,13 +164,11 @@ const YieldPage = () => {
         const found = findInChain(error);
         if (found) return found;
 
-        // Specific detection for Gas related errors
         const errorMsg = String(error).toLowerCase() + (error instanceof Error ? error.message.toLowerCase() : "");
         if (errorMsg.includes("out of gas") || errorMsg.includes("gas limit exceeded") || errorMsg.includes("intrinsic gas")) {
             return "Transaksi gagal karena Out of Gas (Gas tidak mencukupi). Coba kurangi sedikit jumlah transaksi atau naikkan gas limit di dompet Anda.";
         }
         
-        // Cek jika error mengandung kode revert yang tidak terdaftar
         if (errorMsg.includes("execution reverted")) {
             return "Transaksi ditolak oleh Smart Contract. Pastikan batas pinjaman/saldo mencukupi.";
         }
@@ -203,7 +183,6 @@ const YieldPage = () => {
         try {
             const amountInWei = toWei(stakeAmount);
 
-            // Cek Allowance
             if (!allowance || allowance < amountInWei) {
                 await approve(stakeAmount);
                 await refetchAllowance();
@@ -243,7 +222,6 @@ const YieldPage = () => {
         }
     };
 
-    // Actions for Borrow
     const handleBorrow = async () => {
         if (!borrowInput || parseFloat(borrowInput) <= 0 || !account) return;
 
@@ -263,7 +241,6 @@ const YieldPage = () => {
         try {
             const amountWei = toWei(repayInput);
 
-            // Cek Allowance untuk Repay (karena ambil DTC dari wallet)
             if (!allowance || allowance < amountWei) {
                 await approve(repayInput);
                 await refetchAllowance();
@@ -282,8 +259,6 @@ const YieldPage = () => {
         if (parseFloat(userDebt) <= 0 || !account) return;
 
         try {
-            // repayAll butuh allowance yang cukup untuk menutupi seluruh debt + bunga
-            // Tambah buffer 5% untuk bunga yang terakumulasi antara approve dan repayAll
             const debtWithBuffer = (parseFloat(userDebt) * 1.05).toFixed(6);
             const amountWei = toWei(debtWithBuffer);
 
@@ -309,7 +284,6 @@ const YieldPage = () => {
             <section className="min-h-screen bg-linear-to-b from-emerald-50/40 via-slate-50 to-slate-50 pt-10">
                 <div className="mx-auto w-full max-w-3xl px-4 pb-12 space-y-6">
 
-                    {/* Header */}
                     <header className="space-y-1">
                         <h1 className="text-xl font-semibold text-slate-900">Yield</h1>
                         <p className="text-sm text-slate-500">
@@ -317,7 +291,6 @@ const YieldPage = () => {
                         </p>
                     </header>
 
-                    {/* Asset token mismatch warning */}
                     {assetTokenAddressFromContract && assetTokenAddressFromContract.toLowerCase() !== dtcTokenAddress.toLowerCase() && (
                         <div className="p-3 bg-red-50 border border-red-100 rounded-xl text-red-600 text-xs font-medium flex items-center gap-2">
                             <LuInfo size={14} />
@@ -329,7 +302,6 @@ const YieldPage = () => {
                         </div>
                     )}
 
-                    {/* Main Tabs */}
                     <div className="flex p-1 bg-slate-100 rounded-xl w-fit">
                         <button
                             onClick={() => setMainTab("deposit")}
@@ -354,7 +326,6 @@ const YieldPage = () => {
                     {mainTab === "deposit" ? (
                         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
-                            {/* Stats Row */}
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
@@ -404,7 +375,6 @@ const YieldPage = () => {
                                 </div>
                             </div>
 
-                            {/* Accrued Yield */}
                             <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm flex items-center justify-between gap-4">
                                 <div>
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mb-1">
@@ -431,7 +401,6 @@ const YieldPage = () => {
                                 </button>
                             </div>
 
-                            {/* Deposit / Withdraw Form */}
                             <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
                                 <div className="flex border-b border-slate-100">
                                     {(["stake", "unstake"] as const).map((tab) => (
@@ -494,10 +463,6 @@ const YieldPage = () => {
                                                                 return;
                                                             }
                                                             
-                                                            // Calculate max withdrawable while keeping enough collateral for debt
-                                                            // staked - unstakeAmount >= (debt / (borrowLimitPercentage / 100))
-                                                            // unstakeAmount <= staked - (debt * 100 / borrowLimitPercentage)
-                                                            // Add 2% safety buffer for interest accrual
                                                             const minCollateralNeeded = (debt * 1.02 * 100) / 50; 
                                                             const maxUnstake = Math.max(0, staked - minCollateralNeeded);
                                                             setUnstakeAmount(maxUnstake.toFixed(6));
@@ -533,7 +498,6 @@ const YieldPage = () => {
 
                     ) : (
                         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                            {/* Borrow Stats */}
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                 <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
@@ -612,7 +576,6 @@ const YieldPage = () => {
                                 </div>
                             </div>
 
-                            {/* Borrow / Repay Form */}
                             <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
                                 <div className="flex border-b border-slate-100">
                                     {(["borrow", "repay"] as const).map((tab) => (
@@ -638,7 +601,6 @@ const YieldPage = () => {
                                                     <div className="flex flex-col items-end gap-0.5">
                                                         <button onClick={() => {
                                                             const max = parseFloat(borrowLimit) - parseFloat(userDebt);
-                                                            // Round 2: Increase buffer to 1% (0.99) to handle interest more aggressively
                                                             const maxWithBuffer = Math.max(0, max * 0.99);
                                                             setBorrowInput(maxWithBuffer.toFixed(6));
                                                         }} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
@@ -724,7 +686,6 @@ const YieldPage = () => {
                                 </div>
                             </div>
 
-                            {/* Informational Card */}
                             <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm space-y-3">
                                 <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                                     <LuInfo size={14} className="text-emerald-500" />

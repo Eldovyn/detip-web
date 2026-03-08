@@ -19,14 +19,10 @@ const SendPage = () => {
     const [amount, setAmount] = useState("");
 
     const handleTransfer = async () => {
-        console.log("Account:", account?.address);
-        console.log("Recipient:", recipient);
-        console.log("Amount:", amount);
-        console.log("Token Address:", process.env.NEXT_PUBLIC_DTC_TOKEN_ADDRESS);
+        // Transfer implementation
 
         try {
             const result = await transferDTC(recipient, amount);
-            console.log("Transfer successful!", result);
         } catch (error) {
             console.error("Transfer failed:", error);
         }

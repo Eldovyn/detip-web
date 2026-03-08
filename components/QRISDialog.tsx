@@ -50,7 +50,6 @@ export function QRISDialog({
                         <div className="mt-2 space-y-4">
                             <div className="rounded-2xl border border-slate-200 bg-white p-4">
                                 <div className="mx-auto flex h-64 w-64 items-center justify-center rounded-xl border border-slate-100 bg-emerald-50/50">
-                                    {/* In a real app, this would be a dynamic QR code */}
                                     <div className="text-center space-y-2">
                                         <p className="text-xs font-bold text-slate-700">QRIS DUMMY</p>
                                         <div className="w-32 h-32 bg-slate-200 mx-auto rounded-lg flex items-center justify-center">
