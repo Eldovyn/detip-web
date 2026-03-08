@@ -133,15 +133,6 @@ const NavBar = () => {
                         </li>
                         <li>
                             <Link
-                                href="/profile"
-                                aria-current={isActive("/profile") ? "page" : undefined}
-                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
-                            >
-                                Settings
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
                                 href="/swap"
                                 aria-current={isActive("/swap") ? "page" : undefined}
                                 className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
@@ -156,6 +147,15 @@ const NavBar = () => {
                                 className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
                             >
                                 Yield
+                            </Link>
+                        </li>
+                        <li>
+                            <Link
+                                href="/profile"
+                                aria-current={isActive("/profile") ? "page" : undefined}
+                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                            >
+                                Settings
                             </Link>
                         </li>
                     </ul>
