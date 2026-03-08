@@ -22,6 +22,27 @@ const NavBar = () => {
                     width: 20px !important;
                     height: 20px !important;
                 }
+                /* Kill surprise backgrounds on focus/active */
+                .navbar .dropdown div[role="button"]:focus,
+                .navbar .dropdown div[role="button"]:active,
+                .navbar .menu li a:focus,
+                .navbar .menu li a:active {
+                    background-color: transparent !important;
+                    color: inherit !important;
+                    outline: none !important;
+                }
+                .navbar .dropdown-content li a:hover {
+                    background-color: #ecfdf5 !important; /* emerald-50 */
+                    color: #047857 !important; /* emerald-700 */
+                }
+                .navbar .dropdown-content li a:active,
+                .navbar .dropdown-content li a:focus {
+                    background-color: #d1fae5 !important; /* emerald-100 */
+                }
+                /* Arrow Animation */
+                .navbar .dropdown:focus-within svg.chevron {
+                    transform: rotate(180deg);
+                }
             `}</style>
 
             <div className="navbar bg-emerald-50/60 border-b border-emerald-100">
@@ -57,22 +78,14 @@ const NavBar = () => {
                                     Home
                                 </Link>
                             </li>
+                            <li className="menu-title text-slate-400 mt-2">Finance</li>
                             <li>
                                 <Link
                                     href="/send"
                                     aria-current={isActive("/send") ? "page" : undefined}
                                     className="aria-[current=page]:text-emerald-600"
                                 >
-                                    Send
-                                </Link>
-                            </li>
-                            <li>
-                                <Link
-                                    href="/transactions"
-                                    aria-current={isActive("/transactions") ? "page" : undefined}
-                                    className="aria-[current=page]:text-emerald-600"
-                                >
-                                    Transactions
+                                    Transfer
                                 </Link>
                             </li>
                             <li>
@@ -102,17 +115,27 @@ const NavBar = () => {
                                     Donations
                                 </Link>
                             </li>
+                            <li className="menu-title text-slate-400 mt-2">Personal</li>
+                            <li>
+                                <Link
+                                    href="/transactions"
+                                    aria-current={isActive("/transactions") ? "page" : undefined}
+                                    className="aria-[current=page]:text-emerald-600"
+                                >
+                                    Transactions
+                                </Link>
+                            </li>
                         </ul>
                     </div>
 
-                    <a className="flex items-center gap-2 font-semibold text-lg">
+                    <Link href="/" className="flex items-center gap-2 font-semibold text-lg cursor-pointer">
                         <span className="text-slate-900">de</span>
                         <span className="text-emerald-600">tip</span>
-                    </a>
+                    </Link>
                 </div>
 
                 <div className="navbar-center hidden lg:flex">
-                    <ul className="menu menu-horizontal px-1 text-sm font-medium [&_a]:active:bg-transparent">
+                    <ul className="menu menu-horizontal px-1 text-sm font-medium [&_a]:active:bg-transparent items-center">
                         <li>
                             <Link
                                 href="/"
@@ -122,15 +145,43 @@ const NavBar = () => {
                                 Home
                             </Link>
                         </li>
-                        <li>
-                            <Link
-                                href="/send"
-                                aria-current={isActive("/send") ? "page" : undefined}
-                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
+                        
+                        {/* Finance Dropdown - Click based for better reliability */}
+                        <li className="dropdown">
+                            <div 
+                                tabIndex={0} 
+                                role="button" 
+                                className={`flex items-center gap-1 hover:text-emerald-600 active:bg-transparent focus:bg-transparent focus:outline-none cursor-pointer transition-colors ${(isActive("/send") || isActive("/swap") || isActive("/yield") || isActive("/donations")) ? "text-emerald-600" : ""}`}
                             >
-                                Send
-                            </Link>
+                                Finance
+                                <svg xmlns="http://www.w3.org/2000/svg" className="chevron h-4 w-4 opacity-50 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </div>
+                            <ul tabIndex={0} className="dropdown-content menu bg-white rounded-box z-50 w-52 p-2 shadow-xl border border-emerald-50 [&_li_a:active]:bg-emerald-100 [&_li_a:focus]:bg-emerald-50 [&_li_a]:transition-colors">
+                                <li>
+                                    <Link href="/send" className={`px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 ${isActive("/send") ? "text-emerald-600 font-bold bg-emerald-50/50" : "text-slate-600"}`}>
+                                        Transfer
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/swap" className={`px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 ${isActive("/swap") ? "text-emerald-600 font-bold bg-emerald-50/50" : "text-slate-600"}`}>
+                                        Swap Tokens
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/yield" className={`px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 ${isActive("/yield") ? "text-emerald-600 font-bold bg-emerald-50/50" : "text-slate-600"}`}>
+                                        Yield Farming
+                                    </Link>
+                                </li>
+                                <li>
+                                    <Link href="/donations" className={`px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 ${isActive("/donations") ? "text-emerald-600 font-bold bg-emerald-50/50" : "text-slate-600"}`}>
+                                        Donations
+                                    </Link>
+                                </li>
+                            </ul>
                         </li>
+
                         <li>
                             <Link
                                 href="/transactions"
@@ -138,33 +189,6 @@ const NavBar = () => {
                                 className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
                             >
                                 Transactions
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/swap"
-                                aria-current={isActive("/swap") ? "page" : undefined}
-                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
-                            >
-                                Swap
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/yield"
-                                aria-current={isActive("/yield") ? "page" : undefined}
-                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
-                            >
-                                Yield
-                            </Link>
-                        </li>
-                        <li>
-                            <Link
-                                href="/donations"
-                                aria-current={isActive("/donations") ? "page" : undefined}
-                                className="hover:text-emerald-600 aria-[current=page]:text-emerald-600"
-                            >
-                                Donations
                             </Link>
                         </li>
                         <li>
