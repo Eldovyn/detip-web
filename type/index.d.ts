@@ -35,6 +35,7 @@ declare interface DataProfile {
     location?: string;
     address?: string;
     bio?: string;
+    avatar?: string;
 }
 
 declare interface CreateNonceResponse {
@@ -95,6 +96,13 @@ declare interface UserMeResponse {
 declare interface GetDonateResponse {
     message: string;
     data?: DataProfile;
+}
+
+declare interface GetDonatesResponse {
+    message: string;
+    data?: DataProfile[];
+    meta: MetaPage;
+    links: LinksPage;
 }
 
 declare type Direction = "ETH_TO_DTC" | "DTC_TO_ETH";

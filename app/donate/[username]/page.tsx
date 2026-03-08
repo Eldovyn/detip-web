@@ -2,17 +2,20 @@
 
 import NavBar from "@/components/NavBar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { LuMessageSquare, LuHeart, LuCoins, LuMapPin, LuMail } from "react-icons/lu";
 import { useQuery } from "@tanstack/react-query";
 import { usersService } from "@/api/usersService";
 import { TOPUP_RATE_IDR_PER_DTC, formatIDR } from "@/utils/currency";
 import { QRISDialog } from "@/components/QRISDialog";
 import { LuQrCode } from "react-icons/lu";
+import { useAuth } from "@/hooks/useAuth";
 
 const DonatePage = () => {
     const params = useParams();
+    const router = useRouter();
+    const { account } = useAuth();
     const username = params?.username as string;
 
     const [amount, setAmount] = useState("");
@@ -30,6 +33,13 @@ const DonatePage = () => {
     });
 
     const creator = creatorData?.data?.data;
+
+    useEffect(() => {
+        if (account?.address && creator?.address && account.address.toLowerCase() === creator.address.toLowerCase()) {
+            console.log("DonatePage: Self-donation detected. Redirecting to /browse.");
+            router.push("/browse");
+        }
+    }, [account, creator, router]);
 
     const handleDonate = async () => {
         if (!amount || parseFloat(amount) <= 0) return;
