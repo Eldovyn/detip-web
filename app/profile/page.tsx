@@ -67,14 +67,16 @@ const CompleteProfile = () => {
             username: userProfile?.data.data?.username || "",
             email: userProfile?.data.data?.email || "",
             location: userProfile?.data.data?.location || "",
+            bio: userProfile?.data.data?.bio || "",
         },
         onSubmit: (values, { setSubmitting }) => {
             try {
-                const { username, email, location } = values;
+                const { username, email, location, bio } = values;
                 const data: DataProfile = {
                     username,
                     email,
                     location,
+                    bio,
                 };
                 mutate(data);
             } catch (error) {
@@ -228,6 +230,22 @@ const CompleteProfile = () => {
                                 value={formik.values.location}
                                 onChange={formik.handleChange}
                                 className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2">
+                                <LuUserRound size={15} className="text-emerald-500" />
+                                <Label htmlFor="bio">Bio</Label>
+                            </div>
+                            <textarea
+                                id="bio"
+                                name="bio"
+                                placeholder="Tell us about yourself..."
+                                rows={4}
+                                value={formik.values.bio}
+                                onChange={formik.handleChange}
+                                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 resize-none"
                             />
                         </div>
 

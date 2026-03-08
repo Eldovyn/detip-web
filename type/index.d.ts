@@ -34,6 +34,7 @@ declare interface DataProfile {
     email?: string;
     location?: string;
     address?: string;
+    bio?: string;
 }
 
 declare interface CreateNonceResponse {

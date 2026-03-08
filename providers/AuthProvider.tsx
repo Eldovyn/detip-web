@@ -22,9 +22,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-let globalLoginLock = false;
-let lastLoginAddress = "";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
     const account = useActiveAccount();
     const wallet = useActiveWallet();
@@ -33,7 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isBackendLoggedIn, setIsBackendLoggedIn] = useState(false);
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [needsExplicitAuth, setNeedsExplicitAuth] = useState(false);
+    
     const mountedRef = useRef(true);
+    const loginLockRef = useRef(false);
+    const lastProcessedAddressRef = useRef("");
 
     useEffect(() => {
         mountedRef.current = true;
@@ -41,37 +41,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     /**
-     * Logout: hapus token + disconnect wallet (benar-benar logout).
-     * Setelah ini AutoConnect mungkin reconnect, tapi karena MetaMask permission
-     * sudah dicabut oleh disconnect, signing akan gagal 4100 → needsExplicitAuth=true
-     * → user harus klik Connect Wallet lagi (yang trigger MetaMask popup re-auth).
+     * Logout: Clear all session traces and force reload.
      */
     const logout = useCallback(() => {
-        lastLoginAddress = "";
-        globalLoginLock = false;
-        Cookies.remove('account');
+        console.log("AuthProvider: logout triggered");
         Cookies.remove('accessToken');
+        Cookies.remove('account');
         setIsBackendLoggedIn(false);
         setNeedsExplicitAuth(false);
+        lastProcessedAddressRef.current = "";
+        loginLockRef.current = false;
         if (wallet) disconnect(wallet);
+        window.location.reload();
     }, [wallet, disconnect]);
 
-    /** Gunakan jika hanya ingin disconnect tanpa logout context (alias logout) */
     const disconnectWallet = useCallback(() => {
         logout();
     }, [logout]);
 
-    /**
-     * Dipanggil oleh ConnectWallet sebelum connect() modal dibuka.
-     * Me-reset guard agar doLogin bisa retry setelah MetaMask re-authorize.
-     */
     const prepareForExplicitAuth = useCallback(() => {
+        console.log("AuthProvider: internal reset for explicit auth");
+        lastProcessedAddressRef.current = "";
+        loginLockRef.current = false;
         setNeedsExplicitAuth(false);
-        lastLoginAddress = "";
-        globalLoginLock = false;
     }, []);
 
-    // ─── Validasi token secara global ───────────────────────────────────────
+    // ─── Global Token Validation ────────────────────────────────────────────
     const token = Cookies.get('accessToken');
     const { isError: isTokenError } = useQuery({
         queryKey: ["tokenValidation", token],
@@ -88,51 +83,83 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (isTokenError && isBackendLoggedIn) {
+            console.warn("AuthProvider: Token invalid. Logging out.");
             logout();
         }
     }, [isTokenError, isBackendLoggedIn, logout]);
     // ────────────────────────────────────────────────────────────────────────
 
-    // ─── SIWE Login Flow ─────────────────────────────────────────────────────
+    // ─── Unified Auth Controller ────────────────────────────────────────────
     useEffect(() => {
-        if (!account?.address) {
-            lastLoginAddress = "";
-            globalLoginLock = false;
+        const address = account?.address;
+
+        // A. Handle Disconnect or Empty State
+        if (!address) {
+            if (lastProcessedAddressRef.current !== "") {
+                console.log("AuthProvider: No active account. Cleaning up state.");
+                lastProcessedAddressRef.current = "";
+                setIsBackendLoggedIn(false);
+            }
+            return;
+        }
+
+        // B. Handle Account Switch
+        const storedAccount = Cookies.get('account');
+        if (storedAccount && storedAccount.toLowerCase() !== address.toLowerCase()) {
+            console.log("AuthProvider: Switch detected. Syncing account cookie.");
+            Cookies.remove('accessToken');
+            Cookies.set('account', address);
             setIsBackendLoggedIn(false);
             setNeedsExplicitAuth(false);
+            lastProcessedAddressRef.current = "";
+            loginLockRef.current = false;
             return;
         }
 
-        const currentAddress = account.address;
+        // C. Guard: Block if manual re-auth is needed (RPC Error 4100)
+        if (needsExplicitAuth) {
+            if (lastProcessedAddressRef.current !== address + "_BLOCKED") {
+                console.warn("AuthProvider: Auth blocked. User action required for", address);
+                lastProcessedAddressRef.current = address + "_BLOCKED";
+            }
+            return;
+        }
+
+        // D. Skip if already logged in for this address
         const storedToken = Cookies.get('accessToken');
-
-        if (storedToken) {
-            setIsBackendLoggedIn(true);
-            setNeedsExplicitAuth(false);
-            lastLoginAddress = currentAddress;
+        if (storedToken && storedAccount?.toLowerCase() === address.toLowerCase()) {
+            if (!isBackendLoggedIn) {
+                console.log("AuthProvider: Found valid session for", address);
+                setIsBackendLoggedIn(true);
+            }
+            lastProcessedAddressRef.current = address;
             return;
         }
 
-        if (globalLoginLock || lastLoginAddress === currentAddress) {
+        // E. Guard: Prevent redundant login triggers
+        if (loginLockRef.current || lastProcessedAddressRef.current === address) {
             return;
         }
 
+        // F. Execute SIWE Login Flow
         const doLogin = async () => {
-            if (globalLoginLock) return;
-
-            globalLoginLock = true;
-            lastLoginAddress = currentAddress;
+            if (loginLockRef.current) return;
+            
+            console.log("AuthProvider: Starting SIWE login for", address);
+            loginLockRef.current = true;
+            lastProcessedAddressRef.current = address;
             setIsSigningIn(true);
 
             try {
-                const resp = await authService.createNonce({ address: currentAddress });
-                const nonce = resp.data.data.nonce;
+                // 1. Fetch Nonce
+                const nonceResp = await authService.createNonce({ address });
+                const nonce = nonceResp.data.data.nonce;
+                if (!mountedRef.current) return;
 
-                if (!mountedRef.current) { globalLoginLock = false; return; }
-
+                // 2. Build Message
                 const siweMessage = new SiweMessage({
                     domain: window.location.host,
-                    address: currentAddress,
+                    address,
                     statement: "Sign in to DeTip",
                     uri: window.location.origin,
                     version: "1",
@@ -140,59 +167,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     nonce,
                     issuedAt: new Date().toISOString(),
                 });
-
                 const message = siweMessage.prepareMessage();
 
-                if (!account) {
-                    console.error("SIWE Error: account no longer available");
-                    globalLoginLock = false;
-                    lastLoginAddress = "";
+                // 3. Request Signature (Check account one last time)
+                const activeAccount = account;
+                if (!activeAccount || activeAccount.address.toLowerCase() !== address.toLowerCase()) {
+                    console.warn("AuthProvider: Account changed during flow. Aborting.");
                     return;
                 }
 
-                const signature = await account.signMessage({ message });
+                console.log("AuthProvider: Requesting signature...");
+                const signature = await activeAccount.signMessage({ message });
+                if (!mountedRef.current) return;
 
-                if (!mountedRef.current) { globalLoginLock = false; return; }
-
-                const SignInResponse = await authService.signIn(message, signature);
-                const SignInResp = SignInResponse.data;
-                const accessToken = SignInResp?.data?.access_token;
-
-                if (!mountedRef.current) { globalLoginLock = false; return; }
+                // 4. Verify & Store Session
+                console.log("AuthProvider: Verifying signature...");
+                const signResp = (await authService.signIn(message, signature)).data;
+                const accessToken = signResp?.data?.access_token;
 
                 if (accessToken) {
+                    console.log("AuthProvider: SIWE Login Successful!");
                     Cookies.set('accessToken', accessToken);
+                    Cookies.set('account', address);
                     setIsBackendLoggedIn(true);
                     setNeedsExplicitAuth(false);
                 } else {
-                    console.error("Login Failed:", SignInResp.message);
-                    lastLoginAddress = "";
+                    throw new Error("No access token returned");
                 }
-            } catch (error: unknown) {
-                const errCode = (error as { code?: number })?.code;
+            } catch (error: any) {
+                console.error("AuthProvider: Login failed:", error);
+                const errCode = error?.code;
 
                 if (errCode === 4100) {
-                    // MetaMask tidak punya signing permission (terjadi setelah AutoConnect
-                    // reconnect pasca-disconnect). User harus klik Connect Wallet lagi
-                    // untuk trigger MetaMask popup dan re-authorize.
-                    console.warn("SIWE: MetaMask needs explicit re-authorization (code 4100). Please connect wallet again.");
-                    setNeedsExplicitAuth(true);
-                    // Jangan reset lastLoginAddress — biarkan blocked sampai user connect eksplisit
-                } else if (error instanceof Error) {
-                    console.error("SIWE Error:", error.message, error);
-                    lastLoginAddress = "";
+                    console.warn("AuthProvider: 4100 Error. Enabling explicit auth guard.");
+                    setNeedsExplicitAuth(true); 
                 } else {
-                    console.error("SIWE Error (raw):", JSON.stringify(error), error);
-                    lastLoginAddress = "";
+                    lastProcessedAddressRef.current = "";
                 }
             } finally {
-                globalLoginLock = false;
+                loginLockRef.current = false;
                 if (mountedRef.current) setIsSigningIn(false);
             }
         };
 
         doLogin();
-    }, [account?.address, wallet, account, disconnect]);
+    }, [account?.address, isBackendLoggedIn, needsExplicitAuth, account]);
     // ─────────────────────────────────────────────────────────────────────────
 
     return (
