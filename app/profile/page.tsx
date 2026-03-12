@@ -9,7 +9,6 @@ import { IoLocationOutline, IoMailOutline } from "react-icons/io5";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
 import { authService } from "@/api/authService";
-import Cookies from "js-cookie";
 import { useAuth } from "@/hooks/useAuth";
 import { useMutation } from "@tanstack/react-query";
 import { useFormik } from "formik";
@@ -19,9 +18,9 @@ import { toast } from "sonner";
 const CompleteProfile = () => {
     const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
     const [copied, setCopied] = useState(false);
+    const [showLocations, setShowLocations] = useState(false);
 
-    const token = Cookies.get("accessToken");
-    const { logout, account } = useAuth();
+    const { logout, account, accessToken: token } = useAuth();
     const { data: userProfile } = useQuery({
         queryKey: ["userMe"],
         queryFn: () => authService.userMe(token as string),
@@ -87,6 +86,18 @@ const CompleteProfile = () => {
         },
     });
 
+    const { data: locationsData } = useQuery({
+        queryKey: ["locations", formik.values.location],
+        queryFn: async () => {
+            if (formik.values.location.length < 2) return [];
+            const response = await profileService.getLocations(formik.values.location);
+            return response.data.data;
+        },
+        enabled: formik.values.location.length >= 2 && showLocations,
+    });
+
+    const locations = locationsData || [];
+
     const donationBaseUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/donate`;
     const cleanUsername = formik.values.username.trim();
     const donationUrl =
@@ -100,6 +111,8 @@ const CompleteProfile = () => {
         setCopied(true);
         window.setTimeout(() => setCopied(false), 1200);
     };
+
+    const filteredLocations = locations.slice(0, 5);
 
     return (
         <>
@@ -217,7 +230,7 @@ const CompleteProfile = () => {
                             />
                         </div>
 
-                        <div className="space-y-2">
+                        <div className="space-y-2 relative">
                             <div className="flex items-center gap-2">
                                 <IoLocationOutline size={15} className="text-emerald-500" />
                                 <Label htmlFor="location">Location</Label>
@@ -227,11 +240,38 @@ const CompleteProfile = () => {
                                 id="location"
                                 name="location"
                                 placeholder="Jakarta, Bandung, etc."
+                                autoComplete="off"
                                 value={formik.values.location}
-                                onChange={formik.handleChange}
+                                onChange={(e) => {
+                                    formik.handleChange(e);
+                                    setShowLocations(true);
+                                }}
+                                onFocus={() => setShowLocations(true)}
+                                onBlur={() => setTimeout(() => {
+                                    setShowLocations(false);
+                                }, 300)}
                                 className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                             />
+
+                            {showLocations && filteredLocations.length > 0 && (
+                                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+                                    {filteredLocations.map((loc: string) => (
+                                        <button
+                                            key={loc}
+                                            type="button"
+                                            className="w-full px-3 py-2 text-left text-sm hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
+                                            onClick={() => {
+                                                formik.setFieldValue("location", loc);
+                                                setShowLocations(false);
+                                            }}
+                                        >
+                                            {loc}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
+
 
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">

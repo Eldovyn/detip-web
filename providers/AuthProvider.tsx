@@ -13,6 +13,7 @@ interface AuthContextValue {
     isBackendLoggedIn: boolean;
     isSigningIn: boolean;
     needsExplicitAuth: boolean;
+    accessToken: string | undefined;
     prepareForExplicitAuth: () => void;
     logout: () => void;
     disconnectWallet: () => void;
@@ -187,6 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isBackendLoggedIn,
             isSigningIn,
             needsExplicitAuth,
+            accessToken: token,
             prepareForExplicitAuth,
             logout,
             disconnectWallet,

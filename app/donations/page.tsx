@@ -5,6 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LuHeart, LuMessageSquare, LuCoins, LuChevronRight, LuChevronLeft } from "react-icons/lu";
 import Link from "next/link";
 import { useState, useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { usersService } from "@/api/usersService";
+import { useAuth } from "@/hooks/useAuth";
 
 const ALL_DONATIONS = [
     {
@@ -97,34 +100,26 @@ const ALL_DONATIONS = [
     },
 ];
 
-const favoriteUsers = [
-    {
-        id: 1,
-        name: "David Kim",
-        username: "dkim",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
-    },
-    {
-        id: 2,
-        name: "Sophie Bennett",
-        username: "sbennett",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie",
-    },
-    {
-        id: 3,
-        name: "Jordan Lee",
-        username: "jlee",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan",
-    },
-];
-
 const ITEMS_PER_PAGE = 4;
 
 const DonationsPage = () => {
+    const { accessToken } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
 
+    const { data: creatorsData, isLoading: isLoadingCreators } = useQuery({
+        queryKey: ["favorites", accessToken],
+        queryFn: async () => {
+            const response = await usersService.getFavorites(1, 3, accessToken ?? "");
+            return response.data;
+        },
+    });
+
+    const favoriteUsers = useMemo(() => {
+        return creatorsData?.data || [];
+    }, [creatorsData]);
+
     const totalPages = Math.ceil(ALL_DONATIONS.length / ITEMS_PER_PAGE);
-    
+
     const paginatedDonations = useMemo(() => {
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         return ALL_DONATIONS.slice(start, start + ITEMS_PER_PAGE);
@@ -210,17 +205,16 @@ const DonationsPage = () => {
                                         <LuChevronLeft size={14} />
                                         Prev
                                     </button>
-                                    
+
                                     <div className="flex items-center gap-1 mx-2">
                                         {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                                             <button
                                                 key={page}
                                                 onClick={() => handlePageChange(page)}
-                                                className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${
-                                                    currentPage === page
-                                                        ? "bg-emerald-600 text-white shadow-sm"
-                                                        : "bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
-                                                }`}
+                                                className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${currentPage === page
+                                                    ? "bg-emerald-600 text-white shadow-sm"
+                                                    : "bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                                                    }`}
                                             >
                                                 {page}
                                             </button>
@@ -246,7 +240,7 @@ const DonationsPage = () => {
                                         <LuHeart size={16} className="text-rose-500 fill-rose-500" />
                                         Favorites
                                     </h2>
-                                    <Link 
+                                    <Link
                                         href="/favorites"
                                         className="text-[11px] font-medium text-emerald-600 hover:text-emerald-700 transition-colors uppercase tracking-wider"
                                     >
@@ -255,30 +249,46 @@ const DonationsPage = () => {
                                 </div>
 
                                 <div className="space-y-4">
-                                    {favoriteUsers.map((user) => (
-                                        <Link
-                                            href={`/donate/${user.username}`}
-                                            key={user.id}
-                                            className="flex items-center gap-3 p-2 rounded-xl hover:bg-emerald-50/50 transition-colors group"
-                                        >
-                                            <Avatar className="h-10 w-10 shrink-0 ring-2 ring-emerald-50 ring-offset-1 group-hover:ring-emerald-200 transition-all">
-                                                <AvatarImage src={user.avatar} alt={user.name} />
-                                                <AvatarFallback>{user.name[0]}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="min-w-0 flex-1">
-                                                <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-emerald-700 transition-colors">
-                                                    {user.name}
-                                                </p>
-                                                <p className="text-xs text-slate-500 truncate">
-                                                    @{user.username}
-                                                </p>
+                                    {isLoadingCreators ? (
+                                        [...Array(3)].map((_, i) => (
+                                            <div key={i} className="flex items-center gap-3 p-2 animate-pulse">
+                                                <div className="h-10 w-10 rounded-full bg-slate-100" />
+                                                <div className="space-y-2 flex-1">
+                                                    <div className="h-3 w-20 bg-slate-100 rounded" />
+                                                    <div className="h-2 w-16 bg-slate-100 rounded" />
+                                                </div>
                                             </div>
-                                            <LuChevronRight size={16} className="text-slate-300 group-hover:text-emerald-500 transform group-hover:translate-x-0.5 transition-all" />
-                                        </Link>
-                                    ))}
+                                        ))
+                                    ) : favoriteUsers.length > 0 ? (
+                                        favoriteUsers.map((user) => (
+                                            <Link
+                                                href={`/donate/${user.username}`}
+                                                key={user.username}
+                                                className="flex items-center gap-3 p-2 rounded-xl hover:bg-emerald-50/50 transition-colors group"
+                                            >
+                                                <Avatar className="h-10 w-10 shrink-0 ring-2 ring-emerald-50 ring-offset-1 group-hover:ring-emerald-200 transition-all">
+                                                    <AvatarImage src={user.avatar} alt={user.username} />
+                                                    <AvatarFallback>{user.username?.[0].toUpperCase()}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-emerald-700 transition-colors">
+                                                        {user.username}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500 truncate">
+                                                        @{user.username}
+                                                    </p>
+                                                </div>
+                                                <LuChevronRight size={16} className="text-slate-300 group-hover:text-emerald-500 transform group-hover:translate-x-0.5 transition-all" />
+                                            </Link>
+                                        ))
+                                    ) : (
+                                        <div className="py-4 text-center">
+                                            <p className="text-xs text-slate-400 italic">No favorites yet</p>
+                                        </div>
+                                    )}
                                 </div>
 
-                                <Link 
+                                <Link
                                     href="/"
                                     className="block w-full text-center mt-6 py-2.5 px-4 rounded-xl border border-emerald-100 bg-emerald-50/30 text-emerald-700 text-xs font-semibold hover:bg-emerald-50 transition-colors"
                                 >
@@ -304,5 +314,6 @@ const DonationsPage = () => {
         </>
     );
 };
+
 
 export default DonationsPage;

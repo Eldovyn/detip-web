@@ -5,23 +5,54 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LuSearch, LuChevronRight, LuChevronLeft, LuHeart, LuTrophy } from "react-icons/lu";
 import Link from "next/link";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usersService } from "@/api/usersService";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const BrowseCreatorsPage = () => {
-    const { account } = useAuth();
+    const queryClient = useQueryClient();
+    const { accessToken } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const limit = 8;
 
     const { data, isLoading } = useQuery({
-        queryKey: ["donates", currentPage],
+        queryKey: ["donates", currentPage, accessToken],
         queryFn: async () => {
-            const response = await usersService.getDonates(currentPage, limit);
+            const response = await usersService.getDonates(currentPage, limit, accessToken);
             return response.data;
         },
     });
+
+    const { mutate: toggleFavorite } = useMutation({
+        mutationFn: async (addressId: string) => {
+            if (!accessToken) throw new Error("Not logged in");
+            const response = await usersService.favorite(addressId, accessToken);
+            return response.data;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["donates"] });
+            toast.success(data.status ? "Added to favorites" : "Removed from favorites");
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || "Failed to update favorite");
+        },
+    });
+
+    const handleFavoriteClick = (e: React.MouseEvent, addressId: string) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!accessToken) {
+            toast.error("Please login to favorite creators");
+            return;
+        }
+
+        if (addressId) {
+            toggleFavorite(addressId);
+        }
+    };
 
     const handlePrevPage = () => {
         if (currentPage > 1) {
@@ -43,8 +74,6 @@ const BrowseCreatorsPage = () => {
     };
 
     const creators = data?.data || [];
-    const filteredCreators = creators.filter(c => c.address?.toLowerCase() !== account?.address?.toLowerCase());
-    const isEmpty = !isLoading && filteredCreators.length === 0;
 
     return (
         <>
@@ -58,11 +87,11 @@ const BrowseCreatorsPage = () => {
                             Discover Creators
                         </div>
                         <h1 className="text-3xl lg:text-4xl font-black text-slate-900 leading-tight">
-                            Support your favorite <br className="hidden sm:block" /> 
+                            Support your favorite <br className="hidden sm:block" />
                             <span className="text-emerald-600">independent creators</span>
                         </h1>
                         <p className="text-slate-500 text-sm">
-                            Browse through our community of artists, developers, and writers. 
+                            Browse through our community of artists, developers, and writers.
                             Your support helps them continue their incredible work.
                         </p>
                     </div>
@@ -70,7 +99,7 @@ const BrowseCreatorsPage = () => {
                     <div className="bg-white rounded-3xl border border-emerald-100 p-6 shadow-sm">
                         <div className="relative w-full">
                             <LuSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                            <input 
+                            <input
                                 type="text"
                                 placeholder="Search by name, username, or bio..."
                                 value={searchQuery}
@@ -80,7 +109,6 @@ const BrowseCreatorsPage = () => {
                         </div>
                     </div>
 
-                    {/* Creators Grid */}
                     {isLoading ? (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[...Array(8)].map((_, i) => (
@@ -89,12 +117,9 @@ const BrowseCreatorsPage = () => {
                         </div>
                     ) : (
                         <>
-                            {filteredCreators.length > 0 ? (
+                            {creators.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                    {filteredCreators.filter(c => 
-                                        c.username?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                                        c.bio?.toLowerCase().includes(searchQuery.toLowerCase())
-                                    ).map((creator, index) => (
+                                    {creators.map((creator, index) => (
                                         <Link
                                             key={creator.username || index}
                                             href={`/donate/${creator.username}`}
@@ -128,8 +153,11 @@ const BrowseCreatorsPage = () => {
                                                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">Status</p>
                                                     <p className="text-sm font-black text-slate-900">Active</p>
                                                 </div>
-                                                <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all cursor-pointer">
-                                                    <LuHeart size={18} className="hover:fill-current" />
+                                                <div
+                                                    onClick={(e) => handleFavoriteClick(e, creator.address_id || "")}
+                                                    className={`group/heart h-10 w-10 flex items-center justify-center rounded-2xl transition-all cursor-pointer ${creator.is_favorited ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white"}`}
+                                                >
+                                                    <LuHeart size={18} className={creator.is_favorited ? "fill-current" : "group-hover/heart:fill-current"} />
                                                 </div>
                                             </div>
                                         </Link>
@@ -151,7 +179,7 @@ const BrowseCreatorsPage = () => {
                                         Showing page <span className="font-bold text-slate-900">{data.meta.page}</span> of{" "}
                                         <span className="font-bold text-slate-900">{data.meta.total_pages}</span>
                                     </div>
-                                    
+
                                     <div className="flex items-center gap-2 order-1 sm:order-2">
                                         <button
                                             onClick={handlePrevPage}
@@ -161,17 +189,16 @@ const BrowseCreatorsPage = () => {
                                             <LuChevronLeft size={18} />
                                             Previous
                                         </button>
-                                        
+
                                         <div className="hidden md:flex items-center gap-1">
                                             {Array.from({ length: Math.min(5, data.meta.total_pages) }, (_, i) => i + 1).map((page) => (
                                                 <button
                                                     key={page}
                                                     onClick={() => handlePageChange(page)}
-                                                    className={`h-11 min-w-[44px] px-3 rounded-2xl text-sm font-bold transition-all ${
-                                                        currentPage === page
-                                                            ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200"
-                                                            : "bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
-                                                    }`}
+                                                    className={`h-11 min-w-[44px] px-3 rounded-2xl text-sm font-bold transition-all ${currentPage === page
+                                                        ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200"
+                                                        : "bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700"
+                                                        }`}
                                                 >
                                                     {page}
                                                 </button>

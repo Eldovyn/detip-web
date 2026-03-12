@@ -5,17 +5,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { LuMessageSquare, LuHeart, LuCoins, LuMapPin, LuMail } from "react-icons/lu";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { usersService } from "@/api/usersService";
 import { TOPUP_RATE_IDR_PER_DTC, formatIDR } from "@/utils/currency";
 import { QRISDialog } from "@/components/QRISDialog";
 import { LuQrCode } from "react-icons/lu";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 const DonatePage = () => {
+    const queryClient = useQueryClient();
     const params = useParams();
     const router = useRouter();
-    const { account } = useAuth();
+    const { account, accessToken } = useAuth();
     const username = params?.username as string;
 
     const [amount, setAmount] = useState("");
@@ -26,8 +28,8 @@ const DonatePage = () => {
     const [qrisStep, setQrisStep] = useState<"payment" | "success">("payment");
 
     const { data: creatorData, isLoading, isError } = useQuery({
-        queryKey: ["donate", username],
-        queryFn: () => usersService.getDonate(username),
+        queryKey: ["donate", username, accessToken],
+        queryFn: () => usersService.getDonate(username, accessToken),
         enabled: !!username,
         retry: false,
     });
@@ -39,6 +41,21 @@ const DonatePage = () => {
             router.push("/");
         }
     }, [account, creator, router]);
+
+    const { mutate: toggleFavorite } = useMutation({
+        mutationFn: async (addressId: string) => {
+            if (!accessToken) throw new Error("Not logged in");
+            const response = await usersService.favorite(addressId, accessToken);
+            return response.data;
+        },
+        onSuccess: (data) => {
+            queryClient.invalidateQueries({ queryKey: ["donate", username] });
+            toast.success(data.status ? "Added to favorites" : "Removed from favorites");
+        },
+        onError: (err: any) => {
+            toast.error(err?.response?.data?.message || "Failed to update favorite");
+        },
+    });
 
     const handleDonate = async () => {
         if (!amount || parseFloat(amount) <= 0) return;
@@ -146,7 +163,20 @@ const DonatePage = () => {
                                     </p>
                                 )}
                             </div>
-                            <LuHeart className="ml-auto shrink-0 text-emerald-400" size={20} />
+                            <button 
+                                onClick={() => {
+                                    if (!accessToken) {
+                                        toast.error("Please login to favorite creators");
+                                        return;
+                                    }
+                                    if (creator?.address_id) {
+                                        toggleFavorite(creator.address_id);
+                                    }
+                                }}
+                                className={`ml-auto shrink-0 p-2 rounded-xl transition-all ${creator?.is_favorited ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "bg-emerald-50 text-emerald-400 hover:bg-emerald-600 hover:text-white"}`}
+                            >
+                                <LuHeart size={20} className={creator?.is_favorited ? "fill-current" : "hover:fill-current"} />
+                            </button>
                         </div>
                     )}
 

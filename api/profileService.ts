@@ -8,5 +8,9 @@ export const profileService = {
                 Authorization: `Bearer ${accessToken}`,
             },
         });
+    },
+
+    async getLocations(query: string): Promise<AxiosResponse<{ message: string; data: string[] }>> {
+        return axiosInstance.get<{ message: string; data: string[] }>(`/users/locations?q=${encodeURIComponent(query)}`);
     }
 };
