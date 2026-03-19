@@ -21,24 +21,47 @@ export function useDonate() {
 
     // Function to execute the actual donation
     const executeDonation = async (toAddress: string, amountInWei: bigint, message: string, onSuccess?: () => void) => {
-        const transaction = prepareContractCall({
-            contract: dtcDonateContract,
-            method: "function transferDTC(address _to, uint256 _amountDTC, string _message)",
-            params: [toAddress, amountInWei, message],
-        });
+        try {
+            const transaction = prepareContractCall({
+                contract: dtcDonateContract,
+                method: "function transferDTC(address _to, uint256 _amountDTC, string _message)",
+                params: [toAddress, amountInWei, message],
+            });
 
-        sendDonateTx(transaction, {
-            onSuccess: () => {
-                toast.success(`Successfully donated DTC!`);
-                setIsDonating(false);
-                if (onSuccess) onSuccess();
-            },
-            onError: (err) => {
-                console.error("Donation failed:", err);
-                toast.error("Donation failed. Please try again.");
-                setIsDonating(false);
-            }
-        });
+            sendDonateTx(transaction, {
+                onSuccess: async (data) => {
+                    try {
+                        // Wait for donation confirmation
+                        await waitForReceipt({
+                            client,
+                            chain: ganacheChain,
+                            transactionHash: data.transactionHash,
+                        });
+                        
+                        toast.success(`Successfully donated DTC!`, { id: "donation-status" });
+                        setIsDonating(false);
+                        if (onSuccess) onSuccess();
+                    } catch (err) {
+                        console.error("Donation confirmation error:", err);
+                        toast.error("Failed to confirm donation transaction.", { id: "donation-status" });
+                        setIsDonating(false);
+                    }
+                },
+                onError: (err) => {
+                    console.error("Donation failed:", err);
+                    const errorMessage = (err as any).message || "";
+                    if (errorMessage.includes("Insufficient token balance")) {
+                        toast.error("Insufficient DTC balance.");
+                    } else {
+                        toast.error("Donation failed. Please try again.", { id: "donation-status" });
+                    }
+                    setIsDonating(false);
+                }
+            });
+        } catch (err) {
+            console.error("Error preparing donation:", err);
+            setIsDonating(false);
+        }
     };
 
     // Main donate function
@@ -51,10 +74,13 @@ export function useDonate() {
         setIsDonating(true);
         try {
             const amountInWei = toWei(amount);
-
+            
+            // Re-fetch allowance to be sure it's up to date
+            const { data: currentAllowance } = await refetchAllowance();
+            
             // 2. Check Allowance
-            if (allowance === undefined || allowance < amountInWei) {
-                toast.info("Approving DTC token first...");
+            if (currentAllowance === undefined || currentAllowance < amountInWei) {
+                toast.info("Approving DTC token first...", { id: "donation-status" });
                 
                 const approveTx = prepareContractCall({
                     contract: dtcTokenContract,
@@ -64,7 +90,7 @@ export function useDonate() {
 
                 sendApproveTx(approveTx, {
                     onSuccess: async (data) => {
-                        toast.loading("Waiting for approval confirmation...", { id: "approve-toast" });
+                        toast.loading("Waiting for approval confirmation...", { id: "donation-status" });
                         try {
                             const receipt = await waitForReceipt({
                                 client,
@@ -76,19 +102,18 @@ export function useDonate() {
                                 throw new Error("Approval transaction reverted");
                             }
 
-                            toast.success("Token approved! Initiating donation...", { id: "approve-toast" });
-                            refetchAllowance();
+                            toast.success("Token approved! Initiating donation...", { id: "donation-status" });
                             // Proceed to donation
                             await executeDonation(toAddress, amountInWei, message, onSuccess);
                         } catch (err) {
                             console.error("Approval confirmation failed:", err);
-                            toast.error("Approval failed.", { id: "approve-toast" });
+                            toast.error("Approval failed.", { id: "donation-status" });
                             setIsDonating(false);
                         }
                     },
                     onError: (err) => {
                         console.error("Approval failed:", err);
-                        toast.error("Approval failed.", { id: "approve-toast" });
+                        toast.error("Approval failed.", { id: "donation-status" });
                         setIsDonating(false);
                     }
                 });
@@ -100,7 +125,7 @@ export function useDonate() {
 
         } catch (error) {
             console.error("Donation error:", error);
-            toast.error("An error occurred during donation");
+            toast.error("An error occurred during donation", { id: "donation-status" });
             setIsDonating(false);
         }
     };

@@ -3,7 +3,7 @@
 import NavBar from "@/components/NavBar";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { LuCoins, LuTrendingUp, LuLock, LuGift, LuInfo, LuClock } from "react-icons/lu";
+import { LuCoins, LuTrendingUp, LuLock, LuGift, LuInfo, LuClock, LuLoader } from "react-icons/lu";
 import { formatCompactNumber, formatPreciseNumber } from "@/utils/format";
 import {
     useYieldInfo,
@@ -306,7 +306,7 @@ const YieldPage = () => {
                         <button
                             onClick={() => setMainTab("deposit")}
                             className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${mainTab === "deposit"
-                                ? "bg-white text-emerald-700 shadow-sm"
+                                ? "bg-white text-emerald-700"
                                 : "text-slate-500 hover:text-slate-700"
                                 }`}
                         >
@@ -315,7 +315,7 @@ const YieldPage = () => {
                         <button
                             onClick={() => setMainTab("borrow")}
                             className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${mainTab === "borrow"
-                                ? "bg-white text-emerald-700 shadow-sm"
+                                ? "bg-white text-emerald-700"
                                 : "text-slate-500 hover:text-slate-700"
                                 }`}
                         >
@@ -327,7 +327,7 @@ const YieldPage = () => {
                         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
 
                             <div className="grid grid-cols-3 gap-4">
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuCoins size={12} className="text-emerald-500" />
                                         Wallet
@@ -338,7 +338,7 @@ const YieldPage = () => {
                                     </p>
                                 </div>
 
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuLock size={12} className="text-emerald-500" />
                                         Deposited
@@ -359,7 +359,7 @@ const YieldPage = () => {
                                     )}
                                 </div>
 
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuTrendingUp size={12} className="text-emerald-500" />
                                         APY
@@ -375,7 +375,7 @@ const YieldPage = () => {
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm flex items-center justify-between gap-4">
+                            <div className="rounded-2xl border border-emerald-100 bg-white p-5 flex items-center justify-between gap-4">
                                 <div>
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5 mb-1">
                                         <LuGift size={12} className="text-emerald-500" />
@@ -394,14 +394,23 @@ const YieldPage = () => {
                                 <button
                                     onClick={handleClaim}
                                     disabled={isClaiming || parseFloat(pendingReward) <= 0 || !account}
-                                    className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                    className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    <LuGift size={14} />
-                                    {isClaiming ? "Claiming..." : "Claim Yield"}
+                                    {isClaiming ? (
+                                        <>
+                                            <LuLoader className="h-4 w-4 animate-spin" />
+                                            Claiming...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <LuGift size={14} />
+                                            Claim Yield
+                                        </>
+                                    )}
                                 </button>
                             </div>
 
-                            <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
+                            <div className="rounded-2xl border border-emerald-100 bg-white overflow-hidden">
                                 <div className="flex border-b border-slate-100">
                                     {(["stake", "unstake"] as const).map((tab) => (
                                         <button
@@ -436,7 +445,7 @@ const YieldPage = () => {
                                                         placeholder="0.000000"
                                                         value={stakeAmount}
                                                         onChange={(e) => setStakeAmount(e.target.value)}
-                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
+                                                        className="w-full h-12 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
                                                     <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
@@ -444,9 +453,16 @@ const YieldPage = () => {
                                             <button
                                                 onClick={handleStake}
                                                 disabled={isPending || !stakeAmount || parseFloat(stakeAmount) <= 0 || !account}
-                                                className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 h-12 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                {isApproving ? "Approving..." : isStaking ? "Processing..." : "Deposit DTC"}
+                                                {isApproving || isStaking ? (
+                                                    <>
+                                                        <LuLoader className="h-4 w-4 animate-spin" />
+                                                        {isApproving ? "Approving..." : "Processing..."}
+                                                    </>
+                                                ) : (
+                                                    "Deposit DTC"
+                                                )}
                                             </button>
                                         </>
                                     ) : (
@@ -478,7 +494,7 @@ const YieldPage = () => {
                                                         placeholder="0.000000"
                                                         value={unstakeAmount}
                                                         onChange={(e) => setUnstakeAmount(e.target.value)}
-                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
+                                                        className="w-full h-12 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
                                                     <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
@@ -486,9 +502,16 @@ const YieldPage = () => {
                                             <button
                                                 onClick={handleWithdraw}
                                                 disabled={isUnstaking || !unstakeAmount || parseFloat(unstakeAmount) <= 0 || !account}
-                                                className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 h-12 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                {isUnstaking ? "Processing..." : "Withdraw DTC"}
+                                                {isUnstaking ? (
+                                                    <>
+                                                        <LuLoader className="h-4 w-4 animate-spin" />
+                                                        Processing...
+                                                    </>
+                                                ) : (
+                                                    "Withdraw DTC"
+                                                )}
                                             </button>
                                         </>
                                     )}
@@ -499,7 +522,7 @@ const YieldPage = () => {
                     ) : (
                         <div className="space-y-5 animate-in fade-in slide-in-from-bottom-2 duration-300">
                             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuLock size={12} className="text-emerald-500" />
                                         Borrow Limit
@@ -510,7 +533,7 @@ const YieldPage = () => {
                                     </p>
                                 </div>
 
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuCoins size={12} className="text-emerald-500" />
                                         Borrowed
@@ -526,7 +549,7 @@ const YieldPage = () => {
                                     )}
                                 </div>
 
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuTrendingUp size={12} className="text-emerald-500" />
                                         Borrow APY
@@ -538,7 +561,7 @@ const YieldPage = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4">
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuInfo size={12} className="text-emerald-500" />
                                         Liquidity
@@ -552,7 +575,7 @@ const YieldPage = () => {
                                     )}
                                 </div>
 
-                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm space-y-1">
+                                <div className="rounded-2xl border border-emerald-100 bg-white p-4 space-y-1">
                                     <p className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
                                         <LuClock size={12} className="text-emerald-500" />
                                         Reward Period
@@ -576,7 +599,7 @@ const YieldPage = () => {
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-emerald-100 bg-white shadow-sm overflow-hidden">
+                            <div className="rounded-2xl border border-emerald-100 bg-white overflow-hidden">
                                 <div className="flex border-b border-slate-100">
                                     {(["borrow", "repay"] as const).map((tab) => (
                                         <button
@@ -617,7 +640,7 @@ const YieldPage = () => {
                                                         placeholder="0.000000"
                                                         value={borrowInput}
                                                         onChange={(e) => setBorrowInput(e.target.value)}
-                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
+                                                        className="w-full h-12 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
                                                     <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
@@ -635,9 +658,16 @@ const YieldPage = () => {
                                             <button
                                                 onClick={handleBorrow}
                                                 disabled={isPending || !borrowInput || parseFloat(borrowInput) <= 0 || parseFloat(borrowInput) > (parseFloat(borrowLimit) - parseFloat(userDebt)) || parseFloat(stakedBalance) === 0 || !account}
-                                                className="w-full rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                className="w-full flex items-center justify-center gap-2 rounded-xl bg-emerald-600 h-12 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             >
-                                                {isBorrowing ? "Processing..." : "Borrow DTC"}
+                                                {isBorrowing ? (
+                                                    <>
+                                                        <LuLoader className="h-4 w-4 animate-spin" />
+                                                        Processing...
+                                                    </>
+                                                ) : (
+                                                    "Borrow DTC"
+                                                )}
                                             </button>
                                         </>
                                     ) : (
@@ -655,7 +685,7 @@ const YieldPage = () => {
                                                         placeholder="0.000000"
                                                         value={repayInput}
                                                         onChange={(e) => setRepayInput(e.target.value)}
-                                                        className="w-full h-10 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
+                                                        className="w-full h-12 rounded-xl border border-slate-200 bg-white pl-4 pr-16 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/70"
                                                     />
                                                     <span className="absolute right-3 text-xs font-semibold text-slate-400">DTC</span>
                                                 </div>
@@ -664,16 +694,30 @@ const YieldPage = () => {
                                                 <button
                                                     onClick={handleRepay}
                                                     disabled={isPending || !repayInput || parseFloat(repayInput) <= 0 || !account}
-                                                    className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-emerald-600 h-12 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 >
-                                                    {isRepaying ? "Processing..." : "Repay"}
+                                                    {isRepaying ? (
+                                                        <>
+                                                            <LuLoader className="h-4 w-4 animate-spin" />
+                                                            Processing...
+                                                        </>
+                                                    ) : (
+                                                        "Repay"
+                                                    )}
                                                 </button>
                                                 <button
                                                     onClick={handleRepayAll}
                                                     disabled={isPending || parseFloat(userDebt) <= 0 || !account}
-                                                    className="flex-1 rounded-xl border-2 border-emerald-600 bg-white py-2.5 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                                    className="flex-1 flex items-center justify-center gap-2 rounded-xl border-2 border-emerald-600 bg-white h-12 text-sm font-medium text-emerald-700 hover:bg-emerald-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                                 >
-                                                    {isRepayingAll ? "Processing..." : "Repay All"}
+                                                    {isRepayingAll ? (
+                                                        <>
+                                                            <LuLoader className="h-4 w-4 animate-spin" />
+                                                            Processing...
+                                                        </>
+                                                    ) : (
+                                                        "Repay All"
+                                                    )}
                                                 </button>
                                             </div>
                                             {parseFloat(userDebt) > 0 && (
@@ -686,7 +730,7 @@ const YieldPage = () => {
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm space-y-3">
+                             <div className="rounded-2xl border border-emerald-100 bg-white p-5 space-y-3">
                                 <h4 className="text-sm font-semibold text-slate-900 flex items-center gap-2">
                                     <LuInfo size={14} className="text-emerald-500" />
                                     Borrowing Information

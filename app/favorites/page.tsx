@@ -140,7 +140,7 @@ const FavoritesPage = () => {
                                         setSearchQuery(e.target.value);
                                         setCurrentPage(1);
                                     }}
-                                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                                    className="w-full h-11 pl-9 pr-3 rounded-xl border border-slate-200 bg-white text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                                 />
                             </div>
                         </div>
@@ -152,7 +152,7 @@ const FavoritesPage = () => {
                                 <Link
                                     key={user.id}
                                     href={`/donate/${user.username}`}
-                                    className="group rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col items-center text-center space-y-4"
+                                    className="group rounded-2xl border border-emerald-100 bg-white p-6 hover:shadow-md transition-all duration-300 flex flex-col items-center text-center space-y-4"
                                 >
                                     <Avatar className="h-20 w-20 ring-4 ring-emerald-50 ring-offset-2 group-hover:ring-emerald-200 transition-all">
                                         <AvatarImage src={user.avatar} alt={user.name} />
@@ -186,7 +186,7 @@ const FavoritesPage = () => {
                             <p className="text-sm text-slate-500 mt-1 mb-6">Try a different search term or discover new creators.</p>
                             <Link 
                                 href="/"
-                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all"
+                                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all"
                             >
                                 Browse All Creators
                                 <LuChevronRight size={14} />
@@ -200,7 +200,7 @@ const FavoritesPage = () => {
                             <button
                                 onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
-                                className="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50 transition-colors"
+                                className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50 transition-colors"
                             >
                                 <LuChevronLeft size={18} />
                             </button>
@@ -210,7 +210,7 @@ const FavoritesPage = () => {
                                     <button
                                         key={page}
                                         onClick={() => handlePageChange(page)}
-                                        className={`h-9 min-w-[36px] px-2 rounded-lg text-xs font-bold transition-all ${
+                                        className={`h-10 min-w-[40px] px-2 rounded-xl text-xs font-bold transition-all ${
                                             currentPage === page
                                                 ? "bg-emerald-600 text-white"
                                                 : "bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
@@ -224,7 +224,7 @@ const FavoritesPage = () => {
                             <button
                                 onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
-                                className="h-9 w-9 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50 transition-colors"
+                                className="h-10 w-10 flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50 transition-colors"
                             >
                                 <LuChevronRight size={18} />
                             </button>

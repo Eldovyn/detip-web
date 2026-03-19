@@ -105,7 +105,7 @@ const TransactionsPage = () => {
                                         value={searchQuery}
                                         onChange={(e) => setSearchQuery(e.target.value)}
                                         placeholder="Search hash..."
-                                        className="w-56 rounded-md border border-slate-200 bg-white px-3 py-2 pr-8 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
+                                        className="w-56 rounded-xl border border-slate-200 bg-white px-3 h-11 pr-8 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-emerald-500/40"
                                     />
                                     {searchQuery && (
                                         <button
@@ -119,12 +119,12 @@ const TransactionsPage = () => {
                                 </div>
                                 <button
                                     type="submit"
-                                    className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 hover:bg-slate-50"
+                                    className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 h-11 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 hover:bg-slate-50"
                                 >
                                     <Search size={16} />
                                     Search
                                 </button>
-                                <select className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
+                                <select className="rounded-xl border border-slate-200 bg-white px-3 h-11 text-sm text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40">
                                     <option>All statuses</option>
                                     <option>Success</option>
                                     <option>Pending</option>
@@ -195,7 +195,7 @@ const TransactionsPage = () => {
 
                     {!isSearching && (
                         <>
-                            <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
+                            <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white md:block">
                                 <table className="min-w-full divide-y divide-slate-200">
                                     <thead className="bg-slate-50">
                                         <tr className="text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -260,7 +260,7 @@ const TransactionsPage = () => {
                                                     </td>
                                                     <td className="px-4 py-3 text-right text-sm">
                                                         <span
-                                                            className={`inline-flex items-center justify-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(
+                                                            className={`inline-flex items-center justify-center rounded-xl px-2 py-1 text-xs font-medium ring-1 ring-inset ${statusBadgeClass(
                                                                 tx.status
                                                             )}`}
                                                         >
@@ -287,7 +287,7 @@ const TransactionsPage = () => {
                                     transactions.map((tx) => (
                                         <div
                                             key={tx.hash}
-                                            className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 shadow-sm hover:bg-emerald-50/40 transition-colors"
+                                            className="cursor-pointer rounded-xl border border-slate-200 bg-white p-4 hover:bg-emerald-50/40 transition-colors"
                                             onClick={() => handleRowClick(tx)}
                                         >
                                             <div className="flex items-start justify-between gap-3">
@@ -335,7 +335,7 @@ const TransactionsPage = () => {
                                         <button
                                             onClick={handlePrevPage}
                                             disabled={!data.links.prev}
-                                            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 h-10 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             <ChevronLeft size={16} />
                                             Previous
@@ -343,7 +343,7 @@ const TransactionsPage = () => {
                                         <button
                                             onClick={handleNextPage}
                                             disabled={!data.links.next}
-                                            className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-3 h-10 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                                         >
                                             Next
                                             <ChevronRight size={16} />

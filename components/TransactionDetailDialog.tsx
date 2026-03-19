@@ -114,11 +114,11 @@ export function TransactionDetailDialog({
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-lg bg-white rounded-2xl p-0 gap-0 overflow-hidden border border-slate-200 shadow-xl">
+            <DialogContent className="sm:max-w-lg bg-white rounded-2xl p-0 gap-0 overflow-hidden border border-slate-200">
                 <div className="p-6 pb-4 border-b border-slate-100 bg-linear-to-b from-slate-50 to-white pt-10">
                     <div className="flex items-center justify-between">
                         <DialogTitle className="text-xl font-bold text-slate-900 flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-400 to-emerald-600 shadow-lg shadow-emerald-100">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-emerald-400 to-emerald-600">
                                 <Hash size={20} className="text-white" />
                             </div>
                             Transaction Details

@@ -182,10 +182,12 @@ export function useSwap() {
         });
     };
 
+    useEffect(() => {
         if (isEthToDtc && isSwapping) {
             const timeout = setTimeout(() => setIsSwapping(false), 3000);
             return () => clearTimeout(timeout);
         }
+    }, [isEthToDtc, isSwapping]);
 
     const isButtonDisabled = !amountIn || Number(amountIn) <= 0 || isSwapping || !account;
 
@@ -204,6 +206,7 @@ export function useSwap() {
         allowance,
         amountInWei,
         handleAmountChange,
+        setAmountIn,
         toggleDirection,
         handleSwap,
     };

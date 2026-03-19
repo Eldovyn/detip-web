@@ -8,103 +8,27 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { usersService } from "@/api/usersService";
 import { useAuth } from "@/hooks/useAuth";
-
-const ALL_DONATIONS = [
-    {
-        id: 1,
-        user: {
-            name: "Alex Rivera",
-            username: "arivera",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-        },
-        amount: "0.005",
-        message: "Keep up the great work! Love the new features.",
-        timestamp: "2 hours ago",
-    },
-    {
-        id: 2,
-        user: {
-            name: "Sarah Chen",
-            username: "schen",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-        },
-        amount: "0.002",
-        message: "Thanks for the helpful content!",
-        timestamp: "5 hours ago",
-    },
-    {
-        id: 3,
-        user: {
-            name: "Marcus Thorne",
-            username: "mthorne",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
-        },
-        amount: "0.01",
-        message: "",
-        timestamp: "1 day ago",
-    },
-    {
-        id: 4,
-        user: {
-            name: "Elena Rodriguez",
-            username: "erodriguez",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Elena",
-        },
-        amount: "0.003",
-        message: "This project is amazing. So happy to support!",
-        timestamp: "2 days ago",
-    },
-    {
-        id: 5,
-        user: {
-            name: "James Wilson",
-            username: "jwilson",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=James",
-        },
-        amount: "0.001",
-        message: "Small tip but big fan!",
-        timestamp: "3 days ago",
-    },
-    {
-        id: 6,
-        user: {
-            name: "Lisa Wang",
-            username: "lwang",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa",
-        },
-        amount: "0.007",
-        message: "The new UI looks great!",
-        timestamp: "4 days ago",
-    },
-    {
-        id: 7,
-        user: {
-            name: "Tom Harris",
-            username: "tharris",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Tom",
-        },
-        amount: "0.004",
-        message: "Supporting from London.",
-        timestamp: "5 days ago",
-    },
-    {
-        id: 8,
-        user: {
-            name: "Rachel Moore",
-            username: "rmoore",
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel",
-        },
-        amount: "0.002",
-        message: "",
-        timestamp: "1 week ago",
-    },
-];
+import { donationsService } from "@/api/donationsService";
+import { useReadContract } from "thirdweb/react";
+import { dtcDonateContract } from "@/lib/contracts/DTCDonate";
+import { toEther } from "thirdweb";
 
 const ITEMS_PER_PAGE = 4;
 
 const DonationsPage = () => {
-    const { accessToken } = useAuth();
+    const { accessToken, account } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
+
+    const { data: totalDistributed } = useReadContract({
+        contract: dtcDonateContract,
+        method: "totalReceived",
+        params: [account?.address || "0x0000000000000000000000000000000000000000"],
+    });
+
+    const displayTotalDistributed = useMemo(() => {
+        if (!totalDistributed) return "0.00";
+        return toEther(totalDistributed);
+    }, [totalDistributed]);
 
     const { data: creatorsData, isLoading: isLoadingCreators } = useQuery({
         queryKey: ["favorites", accessToken],
@@ -118,12 +42,35 @@ const DonationsPage = () => {
         return creatorsData?.data || [];
     }, [creatorsData]);
 
-    const totalPages = Math.ceil(ALL_DONATIONS.length / ITEMS_PER_PAGE);
+    const { data: donationsData, isLoading: isLoadingDonations } = useQuery({
+        queryKey: ["donations", currentPage, ITEMS_PER_PAGE],
+        queryFn: async () => {
+            const response = await donationsService.getDonations(currentPage, ITEMS_PER_PAGE);
+            return response.data;
+        },
+    });
 
-    const paginatedDonations = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return ALL_DONATIONS.slice(start, start + ITEMS_PER_PAGE);
-    }, [currentPage]);
+    const donations = useMemo(() => {
+        if (!donationsData?.data) return [];
+
+        return donationsData.data.map((donation) => {
+            return {
+                id: donation.transaction_hash,
+                user: {
+                    name: donation?.username || "Anonymous",
+                    username: donation.from.slice(0, 6) + "..." + donation.from.slice(-4),
+                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${donation.from}`,
+                },
+                recipient: donation.to,
+                amount: donation.amountDTC / 1e18,
+                message: donation.message,
+                timestamp: "Recent",
+                blockNumber: donation.block_number,
+            };
+        });
+    }, [donationsData]);
+
+    const totalPages = donationsData?.meta?.total_pages || 1;
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -149,50 +96,78 @@ const DonationsPage = () => {
                                 Recent Activity
                             </h2>
                             <div className="space-y-4">
-                                {paginatedDonations.map((donation) => (
-                                    <div
-                                        key={donation.id}
-                                        className="group rounded-2xl border border-emerald-100 bg-white p-5 shadow-sm hover:shadow-md transition-all duration-300 border-l-4 border-l-emerald-500"
-                                    >
-                                        <div className="flex items-start gap-4">
-                                            <Avatar className="h-12 w-12 shrink-0 border border-slate-100">
-                                                <AvatarImage src={donation.user.avatar} alt={donation.user.name} />
-                                                <AvatarFallback>{donation.user.name[0]}</AvatarFallback>
-                                            </Avatar>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-2">
-                                                    <div>
-                                                        <p className="font-semibold text-slate-900 truncate">
-                                                            {donation.user.name}
-                                                        </p>
-                                                        <p className="text-xs text-slate-500">
-                                                            @{donation.user.username} • {donation.timestamp}
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
-                                                        <LuCoins size={14} className="text-emerald-600" />
-                                                        <span className="text-sm font-bold text-emerald-700">
-                                                            {donation.amount}
-                                                        </span>
-                                                        <span className="text-[10px] font-medium text-emerald-600/70 uppercase">DTC</span>
-                                                    </div>
+                                {isLoadingDonations ? (
+                                    [...Array(5)].map((_, i) => (
+                                        <div key={i} className="rounded-2xl border border-slate-100 bg-white p-5 animate-pulse flex gap-4">
+                                            <div className="h-12 w-12 rounded-full bg-slate-100 shrink-0" />
+                                            <div className="flex-1 space-y-3">
+                                                <div className="flex justify-between">
+                                                    <div className="h-4 w-24 bg-slate-100 rounded" />
+                                                    <div className="h-6 w-16 bg-slate-100 rounded-full" />
                                                 </div>
-
-                                                {donation.message && (
-                                                    <div className="mt-3 relative">
-                                                        <div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-slate-100 rounded-full" />
-                                                        <div className="flex gap-2 text-slate-600 italic text-sm">
-                                                            <LuMessageSquare size={16} className="shrink-0 text-emerald-400/60 mt-0.5" />
-                                                            <p className="leading-relaxed">
-                                                                "{donation.message}"
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                <div className="h-3 w-40 bg-slate-50 rounded" />
                                             </div>
                                         </div>
+                                    ))
+                                ) : donations.length > 0 ? (
+                                    donations.map((donation) => (
+                                        <div
+                                            key={donation.id}
+                                            className="group rounded-2xl border border-emerald-100 bg-white p-5 transition-all duration-300 border-l-4 border-l-emerald-500"
+                                        >
+                                            <div className="flex items-start gap-4">
+                                                <Avatar className="h-12 w-12 shrink-0 border border-slate-100">
+                                                    <AvatarImage src={donation.user.avatar} alt={donation.user.name} />
+                                                    <AvatarFallback>{donation.user.name?.[0] || "?"}</AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div>
+                                                            <p className="font-semibold text-slate-900 truncate">
+                                                                {donation.user.name}
+                                                            </p>
+                                                            <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate max-w-[120px]">
+                                                                {donation.user.username}
+                                                            </p>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-100">
+                                                            <LuCoins size={14} className="text-emerald-600" />
+                                                            <span className="text-sm font-bold text-emerald-700">
+                                                                {donation.amount}
+                                                            </span>
+                                                            <span className="text-[10px] font-medium text-emerald-600/70 uppercase">DTC</span>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-1 flex items-center gap-2">
+                                                        <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                                            To: {donation.recipient.slice(0, 6)}...{donation.recipient.slice(-4)}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-400">
+                                                            • {donation.timestamp}
+                                                        </span>
+                                                    </div>
+
+                                                    {donation.message && (
+                                                        <div className="mt-3 relative">
+                                                            <div className="absolute -left-2 top-0 bottom-0 w-0.5 bg-slate-100 rounded-full" />
+                                                            <div className="flex gap-2 text-slate-600 italic text-sm">
+                                                                <LuMessageSquare size={16} className="shrink-0 text-emerald-400/60 mt-0.5" />
+                                                                <p className="leading-relaxed">
+                                                                    &quot;{donation.message}&quot;
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-center py-12 bg-white rounded-2xl border border-dashed border-slate-200">
+                                        <p className="text-slate-400 italic text-sm">No donations found yet.</p>
                                     </div>
-                                ))}
+                                )}
                             </div>
 
                             {totalPages > 1 && (
@@ -200,10 +175,10 @@ const DonationsPage = () => {
                                     <button
                                         onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                                         disabled={currentPage === 1}
-                                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                     >
-                                        <LuChevronLeft size={14} />
-                                        Prev
+                                        <LuChevronLeft size={16} />
+                                        Previous
                                     </button>
 
                                     <div className="flex items-center gap-1 mx-2">
@@ -211,8 +186,8 @@ const DonationsPage = () => {
                                             <button
                                                 key={page}
                                                 onClick={() => handlePageChange(page)}
-                                                className={`h-8 w-8 rounded-lg text-xs font-bold transition-all ${currentPage === page
-                                                    ? "bg-emerald-600 text-white shadow-sm"
+                                                className={`h-10 min-w-[40px] px-2 rounded-xl text-xs font-bold transition-all ${currentPage === page
+                                                    ? "bg-emerald-600 text-white"
                                                     : "bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
                                                     }`}
                                             >
@@ -224,17 +199,17 @@ const DonationsPage = () => {
                                     <button
                                         onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
                                         disabled={currentPage === totalPages}
-                                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        className="inline-flex items-center gap-1.5 h-10 px-4 rounded-xl border border-slate-200 bg-white text-xs font-bold text-slate-600 hover:border-emerald-300 hover:text-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                                     >
                                         Next
-                                        <LuChevronRight size={14} />
+                                        <LuChevronRight size={16} />
                                     </button>
                                 </div>
                             )}
                         </div>
 
                         <div className="space-y-6">
-                            <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm sticky top-24">
+                            <div className="rounded-2xl border border-emerald-100 bg-white p-6 sticky top-24">
                                 <div className="flex items-center justify-between mb-5">
                                     <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
                                         <LuHeart size={16} className="text-rose-500 fill-rose-500" />
@@ -296,15 +271,15 @@ const DonationsPage = () => {
                                 </Link>
                             </div>
 
-                            <div className="rounded-2xl bg-emerald-600 p-6 text-white shadow-lg shadow-emerald-200/50 overflow-hidden relative group">
+                            <div className="rounded-2xl bg-emerald-600 p-6 text-white overflow-hidden relative group">
                                 <div className="absolute -right-4 -bottom-4 bg-emerald-500/30 rounded-full w-24 h-24 blur-2xl group-hover:scale-150 transition-transform duration-700" />
                                 <div className="relative z-10 space-y-1">
                                     <p className="text-emerald-100 text-[11px] font-medium uppercase tracking-widest">Total Distributed</p>
                                     <h3 className="text-2xl font-bold flex items-center gap-2">
                                         <LuCoins />
-                                        12.45 DTC
+                                        {displayTotalDistributed} DTC
                                     </h3>
-                                    <p className="text-emerald-100/70 text-[10px]">Helping 24 creators this month</p>
+                                    <p className="text-emerald-100/70 text-[10px]">Helping creators the community</p>
                                 </div>
                             </div>
                         </div>

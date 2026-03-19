@@ -28,7 +28,7 @@ export function TransactionList() {
 
     return (
         <>
-            <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-emerald-100 bg-white p-6">
                 <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-slate-900">Transactions</p>
                     <span className="text-xs text-slate-500">Latest</span>

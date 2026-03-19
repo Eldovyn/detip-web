@@ -66,7 +66,7 @@ const NavBar = () => {
 
                         <ul
                             tabIndex={-1}
-                            className="menu menu-sm dropdown-content bg-white rounded-box z-10 mt-3 w-52 p-2 shadow"
+                            className="menu menu-sm dropdown-content bg-white rounded-box z-10 mt-3 w-52 p-2 border border-emerald-50"
                         >
                             <li>
                                 <Link
@@ -174,7 +174,7 @@ const NavBar = () => {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                 </svg>
                             </div>
-                            <ul tabIndex={0} className="dropdown-content menu bg-white rounded-box z-50 w-52 p-2 shadow-xl border border-emerald-50 [&_li_a:active]:bg-emerald-100 [&_li_a:focus]:bg-emerald-50 [&_li_a]:transition-colors">
+                            <ul tabIndex={0} className="dropdown-content menu bg-white rounded-box z-50 w-52 p-2 border border-emerald-50 [&_li_a:active]:bg-emerald-100 [&_li_a:focus]:bg-emerald-50 [&_li_a]:transition-colors">
                                 <li>
                                     <Link href="/send" className={`px-4 py-2 hover:bg-emerald-50 hover:text-emerald-700 ${isActive("/send") ? "text-emerald-600 font-bold bg-emerald-50/50" : "text-slate-600"}`}>
                                         Transfer

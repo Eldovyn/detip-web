@@ -62,7 +62,7 @@ export function TopupDialog({
                                     onChange={(e) => onAmountChange(e.target.value.replace(/[^\d]/g, ""))}
                                     inputMode="numeric"
                                     placeholder="contoh: 50"
-                                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                                    className="w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                                 />
 
                                 <p className="text-[11px] text-slate-500">

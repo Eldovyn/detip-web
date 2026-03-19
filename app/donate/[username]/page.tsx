@@ -13,6 +13,7 @@ import { LuQrCode } from "react-icons/lu";
 import { useAuth } from "@/hooks/useAuth";
 import { useDonate } from "@/hooks/useDonate";
 import { toast } from "sonner";
+import { LuLoader } from "react-icons/lu";
 
 const DonatePage = () => {
     const queryClient = useQueryClient();
@@ -146,7 +147,7 @@ const DonatePage = () => {
 
                     {/* Creator Card */}
                     {isLoading ? (
-                        <div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm animate-pulse">
+                        <div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4 animate-pulse">
                             <div className="h-14 w-14 rounded-full bg-slate-200 shrink-0" />
                             <div className="space-y-2 flex-1">
                                 <div className="h-3.5 w-28 rounded bg-slate-200" />
@@ -158,10 +159,10 @@ const DonatePage = () => {
                             User <span className="font-semibold ml-1">@{username}</span>&nbsp;not found.
                         </div>
                     ) : (
-                        <div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4 shadow-sm">
+                        <div className="flex items-center gap-4 rounded-2xl border border-emerald-100 bg-white p-4">
                             <Avatar className="h-14 w-14 ring-2 ring-emerald-100 ring-offset-2 ring-offset-white shrink-0">
                                 <AvatarImage
-                                    src={`https://api.dicebear.com/7.x/initials/svg?seed=${creator?.username ?? username}`}
+                                    src={creator?.avatar as string}
                                     className="h-full w-full object-cover"
                                 />
                                 <AvatarFallback>
@@ -195,15 +196,15 @@ const DonatePage = () => {
                                         toggleFavorite(creator.address_id);
                                     }
                                 }}
-                                className={`ml-auto shrink-0 p-2 rounded-xl transition-all ${creator?.is_favorited ? "bg-emerald-600 text-white shadow-lg shadow-emerald-200" : "bg-emerald-50 text-emerald-400 hover:bg-emerald-600 hover:text-white"}`}
+                                className={`group/heart ml-auto h-12 w-12 flex items-center justify-center rounded-2xl transition-all ${creator?.is_favorited ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white"}`}
                             >
-                                <LuHeart size={20} className={creator?.is_favorited ? "fill-current" : "hover:fill-current"} />
+                                <LuHeart size={22} className={creator?.is_favorited ? "fill-current" : "group-hover/heart:fill-current"} />
                             </button>
                         </div>
                     )}
 
 
-                    <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-5">
+                    <div className="rounded-2xl border border-emerald-100 bg-white p-6 space-y-5">
                         <div className="flex p-1 bg-slate-100 rounded-lg w-full max-w-[240px] mx-auto">
                             <button
                                 type="button"
@@ -266,9 +267,9 @@ const DonatePage = () => {
                                         placeholder={paymentMethod === "dtc" ? "0.00000" : "0"}
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
-                                        className="w-full h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                                        className="w-full h-12 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                                     />
-                                    <span className="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 min-w-[70px] justify-center">
+                                    <span className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-medium text-slate-600 min-w-[70px] justify-center">
                                         {paymentMethod === "dtc" ? (
                                             <>
                                                 <LuCoins size={12} className="text-emerald-500" />
@@ -309,7 +310,7 @@ const DonatePage = () => {
                                     placeholder="Write a kind message to the creator..."
                                     value={message}
                                     onChange={(e) => setMessage(e.target.value)}
-                                    className="w-full rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 resize-none"
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 resize-none"
                                 />
                                 <p className="text-[11px] text-slate-400 text-right">
                                     {message.length}/200
@@ -320,10 +321,19 @@ const DonatePage = () => {
                                 type="button"
                                 onClick={handleDonate}
                                 disabled={isPending || isDonating || !amount || parseFloat(amount) <= 0 || isError}
-                                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 h-12 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                {paymentMethod === "dtc" ? <LuCoins size={14} /> : <LuQrCode size={14} />}
-                                {(isPending || isDonating) ? "Processing..." : paymentMethod === "dtc" ? "Send Donation" : "Generate QRIS"}
+                                {isPending || isDonating ? (
+                                    <>
+                                        <LuLoader className="h-4 w-4 animate-spin" />
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        {paymentMethod === "dtc" ? <LuCoins size={14} /> : <LuQrCode size={14} />}
+                                        {paymentMethod === "dtc" ? "Send Donation" : "Generate QRIS"}
+                                    </>
+                                )}
                             </button>
                         </form>
                     </div>

@@ -5,7 +5,7 @@ import { ganacheChain } from "@/lib/chains";
 import swapAbiRaw from "../../abi/DTCSwap.json";
 import tokenAbiRaw from "../../abi/DTCToken.json";
 
-export const dtcSwapAddress = "0x0dECd1CC1FD3eb66bD8182eD456556C3e9EcB6E4";
+export const dtcSwapAddress = "0xbfDEa4a83c485b312fbaF1539cD4625EFbcdE915";
 export const dtcTokenAddress = "0xc133D14fbdaD77384282046B2347115c2518235D";
 
 export const dtcSwapContract = getContract({

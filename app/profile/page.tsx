@@ -3,7 +3,7 @@
 import { useState, ChangeEvent, useEffect } from "react";
 import NavBar from "@/components/NavBar";
 import { Label } from "@/components/ui/label";
-import { LuUserRound } from "react-icons/lu";
+import { LuUserRound, LuLoader } from "react-icons/lu";
 import { Separator } from "@/components/ui/separator";
 import { IoLocationOutline, IoMailOutline } from "react-icons/io5";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -131,7 +131,7 @@ const CompleteProfile = () => {
 
                     <form
                         onSubmit={formik.handleSubmit ? formik.handleSubmit : () => { }}
-                        className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm space-y-6"
+                        className="rounded-2xl border border-emerald-100 bg-white p-6 space-y-6"
                     >
                         <div className="space-y-1">
                             <h2 className="text-sm font-semibold text-slate-900">
@@ -159,7 +159,7 @@ const CompleteProfile = () => {
                                 <div className="space-y-1">
                                     <label
                                         htmlFor="avatar"
-                                        className="inline-flex cursor-pointer items-center rounded-md border border-emerald-500/70 bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600"
+                                        className="inline-flex cursor-pointer items-center rounded-xl border border-emerald-500/70 bg-emerald-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-600"
                                     >
                                         Change avatar
                                     </label>
@@ -190,11 +190,11 @@ const CompleteProfile = () => {
                                     placeholder="Enter your username"
                                     value={formik.values.username}
                                     onChange={formik.handleChange}
-                                    className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                                    className="w-full h-12 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                                 />
 
                                 {donationUrl && (
-                                    <div className="mt-1 flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                                    <div className="mt-1 flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
                                         <p className="min-w-0 text-xs text-slate-600">
                                             Your donation link:{" "}
                                             <span className="font-mono text-emerald-700 break-all">
@@ -205,7 +205,7 @@ const CompleteProfile = () => {
                                         <button
                                             type="button"
                                             onClick={handleCopy}
-                                            className="shrink-0 inline-flex items-center justify-center rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-50"
+                                            className="shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-slate-50"
                                         >
                                             {copied ? "Copied" : "Copy"}
                                         </button>
@@ -226,7 +226,7 @@ const CompleteProfile = () => {
                                 placeholder="your@email.com"
                                 value={formik.values.email}
                                 onChange={formik.handleChange}
-                                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                                className="w-full h-12 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                             />
                         </div>
 
@@ -250,11 +250,11 @@ const CompleteProfile = () => {
                                 onBlur={() => setTimeout(() => {
                                     setShowLocations(false);
                                 }, 300)}
-                                className="w-full h-9 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
+                                className="w-full h-12 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                             />
 
                             {showLocations && filteredLocations.length > 0 && (
-                                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-md border border-slate-200 bg-white shadow-lg">
+                                <div className="absolute z-50 w-full mt-1 max-h-48 overflow-y-auto rounded-xl border border-slate-200 bg-white">
                                     {filteredLocations.map((loc: string) => (
                                         <button
                                             key={loc}
@@ -285,7 +285,7 @@ const CompleteProfile = () => {
                                 rows={4}
                                 value={formik.values.bio}
                                 onChange={formik.handleChange}
-                                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 resize-none"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 resize-none"
                             />
                         </div>
 
@@ -293,9 +293,16 @@ const CompleteProfile = () => {
                             <button
                                 type="submit"
                                 disabled={formik.isSubmitting}
-                                className="inline-flex items-center justify-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 h-12 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                {formik.isSubmitting ? "Saving..." : "Save account"}
+                                {formik.isSubmitting ? (
+                                    <>
+                                        <LuLoader className="h-4 w-4 animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    "Save account"
+                                )}
                             </button>
                         </div>
                     </form>

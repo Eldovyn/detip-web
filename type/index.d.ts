@@ -108,3 +108,18 @@ declare interface GetDonatesResponse {
 }
 
 declare type Direction = "ETH_TO_DTC" | "DTC_TO_ETH";
+
+declare interface GetDonationsResponse {
+    message: string;
+    data: {
+        amountDTC: number;
+        block_number: number;
+        from: string;
+        message?: string;
+        to: string;
+        transaction_hash: string;
+        username?: string;
+    }[];
+    meta: MetaPage;
+    links: LinksPage;
+}

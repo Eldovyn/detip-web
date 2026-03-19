@@ -12,7 +12,7 @@ import { formatCompactNumber } from "@/utils/format";
 
 export function BalanceCard({ balance, symbol, menuOpen, onMenuChange, onTopupClick }: BalanceCardProps) {
     return (
-        <div className="rounded-2xl border border-emerald-100 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-emerald-100 bg-white p-6">
             <div className="flex items-start justify-between gap-4">
                 <div className="space-y-1">
                     <p className="text-sm font-semibold text-slate-900">DTC Balance</p>
