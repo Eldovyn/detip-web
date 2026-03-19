@@ -11,6 +11,7 @@ import { TOPUP_RATE_IDR_PER_DTC, formatIDR } from "@/utils/currency";
 import { QRISDialog } from "@/components/QRISDialog";
 import { LuQrCode } from "react-icons/lu";
 import { useAuth } from "@/hooks/useAuth";
+import { useDonate } from "@/hooks/useDonate";
 import { toast } from "sonner";
 
 const DonatePage = () => {
@@ -18,6 +19,7 @@ const DonatePage = () => {
     const params = useParams();
     const router = useRouter();
     const { account, accessToken } = useAuth();
+    const { donateDTC, isDonating } = useDonate();
     const username = params?.username as string;
 
     const [amount, setAmount] = useState("");
@@ -66,15 +68,35 @@ const DonatePage = () => {
             return;
         }
 
+        if (paymentMethod === "dtc") {
+            if (!creator?.address) {
+                toast.error("Creator address not found");
+                return;
+            }
+
+            try {
+                await donateDTC(creator.address, amount, message, () => {
+                    setAmount("");
+                    setMessage("");
+                });
+            } catch (err) {
+                console.error("Donation failed:", err);
+            }
+            return;
+        }
+
+
+
         setIsPending(true);
         try {
-            // Implementation for DTC donation will go here
+            // Implementation for other methods if any
         } catch (error) {
             console.error("Donation failed:", error);
         } finally {
             setIsPending(false);
         }
     };
+
 
     const handleQRISPaid = () => {
         setQrisStep("success");
@@ -163,7 +185,7 @@ const DonatePage = () => {
                                     </p>
                                 )}
                             </div>
-                            <button 
+                            <button
                                 onClick={() => {
                                     if (!accessToken) {
                                         toast.error("Please login to favorite creators");
@@ -297,11 +319,11 @@ const DonatePage = () => {
                             <button
                                 type="button"
                                 onClick={handleDonate}
-                                disabled={isPending || !amount || parseFloat(amount) <= 0 || isError}
+                                disabled={isPending || isDonating || !amount || parseFloat(amount) <= 0 || isError}
                                 className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 focus-visible:ring-offset-1 focus-visible:ring-offset-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                                 {paymentMethod === "dtc" ? <LuCoins size={14} /> : <LuQrCode size={14} />}
-                                {isPending ? "Processing..." : paymentMethod === "dtc" ? "Send Donation" : "Generate QRIS"}
+                                {(isPending || isDonating) ? "Processing..." : paymentMethod === "dtc" ? "Send Donation" : "Generate QRIS"}
                             </button>
                         </form>
                     </div>
