@@ -5,6 +5,7 @@ import { client } from "@/lib/client";
 import { formatCompactNumber } from "@/utils/format";
 import { useAuth } from "@/hooks/useAuth";
 import { useDTCBalance } from "@/hooks/useDTCBalance";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 const wallets = [
     createWallet("io.metamask"),
@@ -19,7 +20,7 @@ const wallets = [
 
 export function ConnectWallet() {
     const { connect } = useConnectModal();
-    const { account, needsExplicitAuth, prepareForExplicitAuth, disconnectWallet } = useAuth();
+    const { account, user, needsExplicitAuth, prepareForExplicitAuth, disconnectWallet } = useAuth();
     const { balance, symbol } = useDTCBalance(account?.address);
 
     const handleConnect = async () => {
@@ -45,11 +46,12 @@ export function ConnectWallet() {
             ) : (
                 <div className="inline-flex items-stretch divide-x divide-slate-200 rounded-xl border border-slate-200 bg-white overflow-hidden">
                     <div className="flex items-center gap-3 px-4 py-2.5 bg-linear-to-br from-emerald-50 via-white to-emerald-50">
-                        <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-linear-to-br from-emerald-500 to-emerald-600">
-                            <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
-                            </svg>
-                        </div>
+                        <Avatar className="w-10 h-10 border border-emerald-100 ring-2 ring-emerald-50 shrink-0">
+                            <AvatarImage src={user?.avatar} alt={user?.username || "User"} />
+                            <AvatarFallback className="bg-emerald-500 text-white font-bold text-sm">
+                                {user?.username ? user.username[0].toUpperCase() : "?"}
+                            </AvatarFallback>
+                        </Avatar>
                         <div className="flex flex-col">
                             <span className="text-xs text-slate-500 font-medium">Balance</span>
                             <span className="text-sm font-bold text-slate-900">
@@ -63,7 +65,7 @@ export function ConnectWallet() {
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </div>
-                            <code className="text-sm font-mono font-medium text-slate-700">
+                            <code className="font-mono text-xs text-slate-600 font-bold">
                                 {account?.address.slice(0, 6)}...{account?.address.slice(-4)}
                             </code>
                         </div>

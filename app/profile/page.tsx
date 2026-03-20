@@ -20,21 +20,15 @@ const CompleteProfile = () => {
     const [copied, setCopied] = useState(false);
     const [showLocations, setShowLocations] = useState(false);
 
-    const { logout, account, accessToken: token } = useAuth();
-    const { data: userProfile } = useQuery({
-        queryKey: ["userMe"],
-        queryFn: () => authService.userMe(token as string),
-        enabled: !!token,
-    });
+    const { logout, account, accessToken: token, user } = useAuth();
 
     useEffect(() => {
-        if (userProfile?.data.data) {
-            const profile = userProfile.data.data;
-            if (account?.address && profile.address && account.address.toLowerCase() !== profile.address.toLowerCase()) {
+        if (user) {
+            if (account?.address && user.address && account.address.toLowerCase() !== user.address.toLowerCase()) {
                 logout();
             }
         }
-    }, [userProfile?.data.data, account?.address, logout]);
+    }, [user, account?.address, logout]);
 
     const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -63,10 +57,10 @@ const CompleteProfile = () => {
     const formik = useFormik({
         enableReinitialize: true,
         initialValues: {
-            username: userProfile?.data.data?.username || "",
-            email: userProfile?.data.data?.email || "",
-            location: userProfile?.data.data?.location || "",
-            bio: userProfile?.data.data?.bio || "",
+            username: user?.username || "",
+            email: user?.email || "",
+            location: user?.location || "",
+            bio: user?.bio || "",
         },
         onSubmit: (values, { setSubmitting }) => {
             try {
@@ -148,10 +142,10 @@ const CompleteProfile = () => {
                             <div className="flex items-center gap-4 sm:flex-col sm:items-start">
                                 <Avatar className="h-20 w-20 ring-2 ring-emerald-100 ring-offset-2 ring-offset-white">
                                     <AvatarImage
-                                        src={avatarPreview ?? "https://github.com/shadcn.png"}
+                                        src={avatarPreview ?? user?.avatar}
                                         className="h-full w-full object-cover"
                                     />
-                                    <AvatarFallback>
+                                    <AvatarFallback className="bg-emerald-500 text-white font-bold text-2xl">
                                         {cleanUsername ? cleanUsername[0]?.toUpperCase() : "U"}
                                     </AvatarFallback>
                                 </Avatar>

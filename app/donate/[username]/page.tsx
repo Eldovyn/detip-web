@@ -53,6 +53,8 @@ const DonatePage = () => {
         },
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ["donate", username] });
+            queryClient.invalidateQueries({ queryKey: ["favorites"] });
+            queryClient.invalidateQueries({ queryKey: ["donates"] });
             toast.success(data.status ? "Added to favorites" : "Removed from favorites");
         },
         onError: (err: any) => {

@@ -13,7 +13,7 @@ export default function Page() {
     const topup = useTopup();
 
 
-    const { account } = useAuth();
+    const { account, user } = useAuth();
     const { balance, symbol } = useDTCBalance(account?.address);
 
     return (
@@ -25,6 +25,8 @@ export default function Page() {
                     <BalanceCard
                         symbol={symbol}
                         balance={balance}
+                        avatar={user?.avatar}
+                        username={user?.username}
                         menuOpen={menuOpen}
                         onMenuChange={setMenuOpen}
                         onTopupClick={topup.open}

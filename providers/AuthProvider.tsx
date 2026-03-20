@@ -14,6 +14,7 @@ interface AuthContextValue {
     isSigningIn: boolean;
     needsExplicitAuth: boolean;
     accessToken: string | undefined;
+    user: DataProfile | null;
     prepareForExplicitAuth: () => void;
     logout: () => void;
     disconnectWallet: () => void;
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [isBackendLoggedIn, setIsBackendLoggedIn] = useState(false);
     const [isSigningIn, setIsSigningIn] = useState(false);
     const [needsExplicitAuth, setNeedsExplicitAuth] = useState(false);
+    const [user, setUser] = useState<DataProfile | null>(null);
     
     const mountedRef = useRef(true);
     const loginLockRef = useRef(false);
@@ -44,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         Cookies.remove('account');
         setIsBackendLoggedIn(false);
         setNeedsExplicitAuth(false);
+        setUser(null);
         lastProcessedAddressRef.current = "";
         loginLockRef.current = false;
         if (wallet) disconnect(wallet);
@@ -61,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, []);
 
     const token = Cookies.get('accessToken');
-    const { isError: isTokenError } = useQuery({
+    const { isError: isTokenError, data: profileData } = useQuery({
         queryKey: ["tokenValidation", token],
         queryFn: async () => {
             const res = await authService.userMe(token as string);
@@ -73,6 +76,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         gcTime: 0,
         throwOnError: false,
     });
+
+    useEffect(() => {
+        if (profileData?.data) {
+            setUser(profileData.data);
+        }
+    }, [profileData]);
 
     useEffect(() => {
         if (isTokenError && isBackendLoggedIn) {
@@ -189,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isSigningIn,
             needsExplicitAuth,
             accessToken: token,
+            user,
             prepareForExplicitAuth,
             logout,
             disconnectWallet,

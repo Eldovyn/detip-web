@@ -19,16 +19,23 @@ const DonationsPage = () => {
     const { accessToken, account } = useAuth();
     const [currentPage, setCurrentPage] = useState(1);
 
-    const { data: totalDistributed } = useReadContract({
+    const { data: globalTotalDistributed } = useReadContract({
         contract: dtcDonateContract,
         method: "totalReceived",
+        params: [],
+    });
+
+    const { data: userReceivedVal } = useReadContract({
+        contract: dtcDonateContract,
+        method: "userReceived",
         params: [account?.address || "0x0000000000000000000000000000000000000000"],
     });
 
     const displayTotalDistributed = useMemo(() => {
-        if (!totalDistributed) return "0.00";
-        return toEther(totalDistributed);
-    }, [totalDistributed]);
+        const value = account ? userReceivedVal : globalTotalDistributed;
+        if (!value) return "0.00";
+        return toEther(value);
+    }, [globalTotalDistributed, userReceivedVal, account]);
 
     const { data: creatorsData, isLoading: isLoadingCreators } = useQuery({
         queryKey: ["favorites", accessToken],
@@ -43,9 +50,9 @@ const DonationsPage = () => {
     }, [creatorsData]);
 
     const { data: donationsData, isLoading: isLoadingDonations } = useQuery({
-        queryKey: ["donations", currentPage, ITEMS_PER_PAGE],
+        queryKey: ["donations", currentPage, ITEMS_PER_PAGE, accessToken],
         queryFn: async () => {
-            const response = await donationsService.getDonations(currentPage, ITEMS_PER_PAGE);
+            const response = await donationsService.getDonations(currentPage, ITEMS_PER_PAGE, accessToken ?? "");
             return response.data;
         },
     });
@@ -59,12 +66,12 @@ const DonationsPage = () => {
                 user: {
                     name: donation?.username || "Anonymous",
                     username: donation.from.slice(0, 6) + "..." + donation.from.slice(-4),
-                    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${donation.from}`,
+                    avatar: donation.avatar,
                 },
                 recipient: donation.to,
                 amount: donation.amountDTC / 1e18,
                 message: donation.message,
-                timestamp: "Recent",
+                timestamp: donation.timestamp ? new Date(donation.timestamp * 1000).toLocaleString() : "Recent",
                 blockNumber: donation.block_number,
             };
         });
@@ -274,12 +281,16 @@ const DonationsPage = () => {
                             <div className="rounded-2xl bg-emerald-600 p-6 text-white overflow-hidden relative group">
                                 <div className="absolute -right-4 -bottom-4 bg-emerald-500/30 rounded-full w-24 h-24 blur-2xl group-hover:scale-150 transition-transform duration-700" />
                                 <div className="relative z-10 space-y-1">
-                                    <p className="text-emerald-100 text-[11px] font-medium uppercase tracking-widest">Total Distributed</p>
+                                    <p className="text-emerald-100 text-[11px] font-medium uppercase tracking-widest">
+                                        {account ? "Your Total Received" : "Global Total Distributed"}
+                                    </p>
                                     <h3 className="text-2xl font-bold flex items-center gap-2">
                                         <LuCoins />
                                         {displayTotalDistributed} DTC
                                     </h3>
-                                    <p className="text-emerald-100/70 text-[10px]">Helping creators the community</p>
+                                    <p className="text-emerald-100/70 text-[10px]">
+                                        {account ? "Total support you've received" : "Helping creators the community"}
+                                    </p>
                                 </div>
                             </div>
                         </div>

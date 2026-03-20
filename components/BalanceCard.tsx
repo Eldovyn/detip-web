@@ -9,15 +9,24 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { SECONDARY_BTN, PRIMARY_BTN, MENU_CONTENT, MENU_ITEM } from "@/constants/styles";
 import { formatCompactNumber } from "@/utils/format";
+import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
-export function BalanceCard({ balance, symbol, menuOpen, onMenuChange, onTopupClick }: BalanceCardProps) {
+export function BalanceCard({ balance, symbol, menuOpen, onMenuChange, onTopupClick, avatar, username }: BalanceCardProps) {
     return (
         <div className="rounded-2xl border border-emerald-100 bg-white p-6">
             <div className="flex items-start justify-between gap-4">
-                <div className="space-y-1">
-                    <p className="text-sm font-semibold text-slate-900">DTC Balance</p>
-                    <p className="text-3xl font-semibold text-slate-900">{formatCompactNumber(balance)} {symbol}</p>
-                    <p className="text-sm text-slate-500">Available</p>
+                <div className="flex items-center gap-4">
+                    <Avatar className="h-16 w-16 border-2 border-emerald-100 ring-4 ring-emerald-50 shrink-0">
+                        <AvatarImage src={avatar} alt={username || "User"} />
+                        <AvatarFallback className="bg-emerald-500 text-white font-bold text-xl">
+                            {username ? username[0].toUpperCase() : "?"}
+                        </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-1">
+                        <p className="text-sm font-semibold text-slate-900">{username || "DTC Balance"}</p>
+                        <p className="text-3xl font-semibold text-slate-900">{formatCompactNumber(balance)} {symbol}</p>
+                        <p className="text-sm text-slate-500">Available</p>
+                    </div>
                 </div>
 
                 <DropdownMenu open={menuOpen} onOpenChange={onMenuChange} modal={false}>

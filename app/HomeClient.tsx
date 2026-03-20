@@ -15,13 +15,18 @@ import { toast } from "sonner";
 const BrowseCreatorsPage = () => {
     const queryClient = useQueryClient();
     const { accessToken } = useAuth();
+    const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const limit = 8;
 
     const { data, isLoading } = useQuery({
-        queryKey: ["donates", currentPage, accessToken],
+        queryKey: ["donates", currentPage, accessToken, showFavoritesOnly],
         queryFn: async () => {
+            if (showFavoritesOnly && accessToken) {
+                const response = await usersService.getFavorites(currentPage, limit, accessToken);
+                return response.data;
+            }
             const response = await usersService.getDonates(currentPage, limit, accessToken);
             return response.data;
         },
@@ -35,6 +40,7 @@ const BrowseCreatorsPage = () => {
         },
         onSuccess: (data) => {
             queryClient.invalidateQueries({ queryKey: ["donates"] });
+            queryClient.invalidateQueries({ queryKey: ["favorites"] });
             toast.success(data.status ? "Added to favorites" : "Removed from favorites");
         },
         onError: (err: any) => {
@@ -98,7 +104,7 @@ const BrowseCreatorsPage = () => {
                         </p>
                     </div>
 
-                    <div className="bg-white rounded-3xl border border-emerald-100 p-6">
+                    <div className="bg-white rounded-3xl border border-emerald-100 p-6 flex flex-col sm:flex-row gap-4 items-center">
                         <div className="relative w-full">
                             <LuSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
                             <input
@@ -109,6 +115,23 @@ const BrowseCreatorsPage = () => {
                                 className="w-full h-14 pl-12 pr-6 rounded-2xl border border-slate-100 bg-slate-50 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/20"
                             />
                         </div>
+                        <button
+                            onClick={() => {
+                                if (!accessToken) {
+                                    toast.error("Please login to see your favorites");
+                                    return;
+                                }
+                                setShowFavoritesOnly(!showFavoritesOnly);
+                                setCurrentPage(1);
+                            }}
+                            className={`flex-shrink-0 h-14 px-6 rounded-2xl flex items-center gap-2 font-bold transition-all border ${showFavoritesOnly
+                                ? "bg-emerald-600 text-white border-emerald-600"
+                                : "bg-white text-slate-600 border-slate-100 hover:border-emerald-200 hover:bg-emerald-50"
+                                }`}
+                        >
+                            <LuHeart className={showFavoritesOnly ? "fill-current" : ""} />
+                            <span className="hidden sm:inline">Favorites Only</span>
+                        </button>
                     </div>
 
                     {isLoading ? (

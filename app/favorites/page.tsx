@@ -4,101 +4,35 @@ import NavBar from "@/components/NavBar";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LuHeart, LuChevronRight, LuChevronLeft, LuSearch } from "react-icons/lu";
 import Link from "next/link";
-import { useState, useMemo } from "react";
-
-const ALL_FAVORITES = [
-    {
-        id: 1,
-        name: "David Kim",
-        username: "dkim",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=David",
-        bio: "Digital artist and blockchain enthusiast.",
-    },
-    {
-        id: 2,
-        name: "Sophie Bennett",
-        username: "sbennett",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sophie",
-        bio: "Full-stack developer building the future of Web3.",
-    },
-    {
-        id: 3,
-        name: "Jordan Lee",
-        username: "jlee",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jordan",
-        bio: "Content creator focused on tech and lifestyle.",
-    },
-    {
-        id: 4,
-        name: "Elena Rodriguez",
-        username: "erodriguez",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Elena",
-        bio: "Writer and educator sharing insights on DeFi.",
-    },
-    {
-        id: 5,
-        name: "Marcus Thorne",
-        username: "mthorne",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Marcus",
-        bio: "Musician exploring decentralized platforms.",
-    },
-    {
-        id: 6,
-        name: "Sarah Chen",
-        username: "schen",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-        bio: "Product designer with a passion for UX.",
-    },
-    {
-        id: 7,
-        name: "Alex Rivera",
-        username: "arivera",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Alex",
-        bio: "Software engineer and open source contributor.",
-    },
-    {
-        id: 8,
-        name: "Lisa Wang",
-        username: "lwang",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa",
-        bio: "Crypto analyst and community builder.",
-    },
-    {
-        id: 9,
-        name: "Tom Harris",
-        username: "tharris",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Tom",
-        bio: "Photographer documenting the crypto revolution.",
-    },
-    {
-        id: 10,
-        name: "Rachel Moore",
-        username: "rmoore",
-        avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Rachel",
-        bio: "Entrepreneur and early adopter of blockchain tech.",
-    },
-];
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { usersService } from "@/api/usersService";
+import { useAuth } from "@/hooks/useAuth";
 
 const ITEMS_PER_PAGE = 6;
 
 const FavoritesPage = () => {
+    const { accessToken } = useAuth();
     const [searchQuery, setSearchQuery] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
 
-    const filteredFavorites = useMemo(() => {
-        return ALL_FAVORITES.filter(user => 
-            user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            user.bio.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-    }, [searchQuery]);
+    const { data: favoritesData, isLoading } = useQuery({
+        queryKey: ["favorites", currentPage, accessToken],
+        queryFn: async () => {
+            if (!accessToken) return null;
+            const response = await usersService.getFavorites(currentPage, ITEMS_PER_PAGE, accessToken);
+            return response.data;
+        },
+        enabled: !!accessToken,
+    });
 
-    const totalPages = Math.ceil(filteredFavorites.length / ITEMS_PER_PAGE);
-    
-    const paginatedFavorites = useMemo(() => {
-        const start = (currentPage - 1) * ITEMS_PER_PAGE;
-        return filteredFavorites.slice(start, start + ITEMS_PER_PAGE);
-    }, [filteredFavorites, currentPage]);
+    const favoritesList = favoritesData?.data || [];
+    const totalPages = favoritesData?.meta?.total_pages || 0;
+
+    const filteredFavorites = favoritesList.filter(user =>
+        user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.bio?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const handlePageChange = (page: number) => {
         setCurrentPage(page);
@@ -146,28 +80,36 @@ const FavoritesPage = () => {
                         </div>
                     </header>
 
-                    {paginatedFavorites.length > 0 ? (
+                    {isLoading ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {paginatedFavorites.map((user) => (
+                            {[...Array(ITEMS_PER_PAGE)].map((_, i) => (
+                                <div key={i} className="h-64 rounded-2xl border border-emerald-50 bg-white animate-pulse" />
+                            ))}
+                        </div>
+                    ) : filteredFavorites.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredFavorites.map((user, index) => (
                                 <Link
-                                    key={user.id}
+                                    key={user.address_id || index}
                                     href={`/donate/${user.username}`}
                                     className="group rounded-2xl border border-emerald-100 bg-white p-6 hover:shadow-md transition-all duration-300 flex flex-col items-center text-center space-y-4"
                                 >
                                     <Avatar className="h-20 w-20 ring-4 ring-emerald-50 ring-offset-2 group-hover:ring-emerald-200 transition-all">
-                                        <AvatarImage src={user.avatar} alt={user.name} />
-                                        <AvatarFallback className="text-xl font-bold">{user.name[0]}</AvatarFallback>
+                                        <AvatarImage src={user.avatar} alt={user.username} />
+                                        <AvatarFallback className="text-xl font-bold bg-emerald-500 text-white">
+                                            {user.username ? user.username[0].toUpperCase() : "?"}
+                                        </AvatarFallback>
                                     </Avatar>
                                     
                                     <div className="space-y-1">
                                         <h3 className="font-bold text-slate-900 group-hover:text-emerald-700 transition-colors">
-                                            {user.name}
+                                            {user.username}
                                         </h3>
                                         <p className="text-xs text-emerald-600 font-medium">@{user.username}</p>
                                     </div>
 
                                     <p className="text-sm text-slate-500 line-clamp-2 min-h-[40px]">
-                                        {user.bio}
+                                        {user.bio || "No bio available."}
                                     </p>
 
                                     <div className="pt-2 w-full">

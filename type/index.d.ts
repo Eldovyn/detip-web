@@ -7,6 +7,8 @@ declare interface LoginResponse {
 declare interface BalanceCardProps {
     symbol: string;
     balance: string;
+    avatar?: string;
+    username?: string;
     menuOpen: boolean;
     onMenuChange: (open: boolean) => void;
     onTopupClick: () => void;
@@ -119,6 +121,8 @@ declare interface GetDonationsResponse {
         to: string;
         transaction_hash: string;
         username?: string;
+        avatar: string;
+        timestamp: number;
     }[];
     meta: MetaPage;
     links: LinksPage;
